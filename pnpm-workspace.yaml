@@ -1,0 +1,9 @@
+packages:
+  - "."
+
+ignoredBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+
+onlyBuiltDependencies:
+  - '@biomejs/biome'

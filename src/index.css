@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #fff;
+}
+
+.striped-table tbody > tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+
+.striped-table tbody > tr:nth-child(even) {
+  background-color: #f5f7f8;
+}

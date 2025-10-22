@@ -1,0 +1,22 @@
+# Local
+.DS_Store
+*.local
+*.log*
+
+# Dist
+node_modules
+dist/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Environment files
+.env*
+*.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test

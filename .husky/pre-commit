@@ -1,0 +1,4 @@
+# .husky/pre-commit
+pnpm run lint
+pnpm run format
+git update-index --again
