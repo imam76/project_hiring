@@ -35,6 +35,11 @@ const JobApplicationForm = ({
 }) => {
   const [form] = Form.useForm();
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoPreviewValidate1, setPhotoPreviewValidate1] = useState(null);
+  const [photoPreviewValidate2, setPhotoPreviewValidate2] = useState(null);
+  const [photoPreviewValidate3, setPhotoPreviewValidate3] = useState(null);
+  const [poseStep, setPoseStep] = useState('three_fingers');
+
   const [photoFile, setPhotoFile] = useState(null);
 
   // Extract fields dari jobConfig
@@ -198,16 +203,121 @@ const JobApplicationForm = ({
                 mirrored
                 showOverlay
                 captureLabel="Capture dari Kamera"
+                poseName={poseStep}
                 onValid={({ dataUrl, file }) => {
-                  setPhotoPreview(dataUrl);
-                  setPhotoFile(dataUrl);
-                  form.setFieldsValue({ photo_profile: dataUrl });
-                  antMessage.success('Pose valid. Foto berhasil diambil.');
+                  if (poseStep === 'three_fingers') {
+                    // Validasi 1
+                    setPhotoPreviewValidate1(dataUrl);
+                    antMessage.success('Validasi 1 berhasil!');
+                    setPoseStep('v_pose');
+                  } else if (poseStep === 'v_pose') {
+                    // Validasi 2
+                    setPhotoPreviewValidate2(dataUrl);
+                    antMessage.success('Validasi 2 berhasil!');
+                    setPoseStep('one_finger');
+                  } else if (poseStep === 'one_finger') {
+                    // Validasi 3
+                    setPhotoPreviewValidate3(dataUrl);
+                    antMessage.success('Validasi 3 berhasil! Semua validasi selesai.');
+                  }
                 }}
                 onInvalid={(msg) => {
                   antMessage.warning(msg || 'Pose tidak valid. Coba lagi.');
                 }}
               />
+
+              <div style={{ marginTop: 16 }}>
+                <Text strong>Preview Validasi Foto</Text>
+                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                  <div
+                    style={{
+                      width: 100,
+                      height: 100,
+                      border: '2px dashed #d9d9d9',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: photoPreviewValidate1 ? 'transparent' : '#fafafa',
+                    }}
+                  >
+                    {photoPreviewValidate1 ? (
+                      <img
+                        src={photoPreviewValidate1}
+                        alt="Validasi 1"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                        Foto 1
+                      </Text>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      width: 100,
+                      height: 100,
+                      border: '2px dashed #d9d9d9',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: photoPreviewValidate2 ? 'transparent' : '#fafafa',
+                    }}
+                  >
+                    {photoPreviewValidate2 ? (
+                      <img
+                        src={photoPreviewValidate2}
+                        alt="Validasi 2"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                        Foto 2
+                      </Text>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      width: 100,
+                      height: 100,
+                      border: '2px dashed #d9d9d9',
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: photoPreviewValidate3 ? 'transparent' : '#fafafa',
+                    }}
+                  >
+                    {photoPreviewValidate3 ? (
+                      <img
+                        src={photoPreviewValidate3}
+                        alt="Validasi 3"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ) : (
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                        Foto 3
+                      </Text>
+                    )}
+                  </div>
+                </div>
+              </div>
             </Space>
           </Form.Item>
         );

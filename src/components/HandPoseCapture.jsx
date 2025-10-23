@@ -27,6 +27,7 @@ const HandPoseCapture = ({
   onValid,
   onInvalid,
   onRetake,
+  poseName = 'open_palm' | 'v_pose' | 'three_fingers' | 'one_finger' | 'no_pose',
 }) => {
   const videoRef = useRef(null);
   const overlayRef = useRef(null);
@@ -88,6 +89,207 @@ const HandPoseCapture = ({
     }
   };
 
+  // Validasi pose V (peace sign)
+const isVPose = (res) => {
+  try {
+    const hand = res?.multiHandLandmarks?.[0];
+    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
+
+    // Confidence dari handedness
+    const conf = res?.multiHandedness?.[0]?.score ?? 0;
+    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+
+    // Indeks landmark
+    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+
+    // Cek jari telunjuk dan tengah terangkat
+    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+    const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
+
+    // Cek jari manis dan kelingking dilipat
+    const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
+    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+
+    // Validasi jarak antara telunjuk dan tengah (harus terpisah)
+    const fingerSpread = Math.abs(hand[tipIdx.index].x - hand[tipIdx.middle].x);
+    const spreadOK = fingerSpread >= 0.04; // Threshold bisa disesuaikan
+
+    // Validasi ibu jari (opsional, bisa dilipat atau terbuka)
+    // Untuk V pose yang ketat, ibu jari biasanya dilipat
+    const thumbTip = hand[4];
+    const thumbMCP = hand[2];
+    const thumbFolded = Math.abs(thumbTip.x - thumbMCP.x) < 0.08;
+
+    // Cek semua kondisi
+    if (indexExtended && middleExtended && ringFolded && pinkyFolded) {
+      if (spreadOK) {
+        return { ok: true };
+      }
+      return { ok: false, reason: 'Jari telunjuk dan tengah terlalu rapat' };
+    }
+
+    // Berikan feedback spesifik
+    if (!indexExtended || !middleExtended) {
+      return { ok: false, reason: 'Angkat telunjuk dan jari tengah' };
+    }
+    if (!ringFolded || !pinkyFolded) {
+      return { ok: false, reason: 'Lipat jari manis dan kelingking' };
+    }
+
+    return { ok: false, reason: 'Pose V tidak terdeteksi' };
+  } catch (_e) {
+    return { ok: false, reason: 'Gagal memvalidasi pose' };
+  }
+};
+
+// Validasi pose 3 jari (telunjuk, tengah, manis terangkat)
+const isThreeFingers = (res) => {
+  try {
+    const hand = res?.multiHandLandmarks?.[0];
+    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
+
+    // Confidence dari handedness
+    const conf = res?.multiHandedness?.[0]?.score ?? 0;
+    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+
+    // Indeks landmark
+    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+
+    // Cek telunjuk, tengah, dan manis terangkat
+    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+    const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
+    const ringExtended = hand[tipIdx.ring].y < hand[pipIdx.ring].y;
+
+    // Cek kelingking dilipat
+    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+
+    // Validasi sebaran jari (harus terpisah, tidak mengepal)
+    const xs = [hand[tipIdx.index].x, hand[tipIdx.middle].x, hand[tipIdx.ring].x];
+    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const spread = Math.sqrt(
+      xs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / xs.length
+    );
+    const spreadOK = spread >= 0.025; // Threshold untuk memastikan jari terpisah
+
+    // Validasi ibu jari (opsional)
+    // Bisa dilipat atau terbuka tergantung kebutuhan
+    const thumbTip = hand[4];
+    const thumbMCP = hand[2];
+    const wristX = hand[0].x;
+    
+    // Opsi 1: Ibu jari bebas (tidak divalidasi)
+    // Opsi 2: Ibu jari harus terbuka
+    const thumbOpen = Math.abs(thumbTip.x - wristX) >= 0.07;
+
+    // Cek semua kondisi (tanpa validasi ibu jari)
+    if (indexExtended && middleExtended && ringExtended && pinkyFolded) {
+      if (spreadOK) {
+        return { ok: true };
+      }
+      return { ok: false, reason: 'Jari terlalu rapat, buka lebih lebar' };
+    }
+
+    // Berikan feedback spesifik
+    if (!indexExtended || !middleExtended || !ringExtended) {
+      return { ok: false, reason: 'Angkat telunjuk, jari tengah, dan jari manis' };
+    }
+    if (!pinkyFolded) {
+      return { ok: false, reason: 'Lipat jari kelingking' };
+    }
+
+    return { ok: false, reason: 'Pose 3 jari tidak terdeteksi' };
+  } catch (_e) {
+    return { ok: false, reason: 'Gagal memvalidasi pose' };
+  }
+};
+
+// Validasi pose 1 jari (hanya telunjuk terangkat)
+const isOneFinger = (res) => {
+  try {
+    const hand = res?.multiHandLandmarks?.[0];
+    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
+
+    // Confidence dari handedness
+    const conf = res?.multiHandedness?.[0]?.score ?? 0;
+    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+
+    // Indeks landmark
+    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+
+    // Cek telunjuk terangkat
+    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+
+    // Cek jari tengah, manis, dan kelingking dilipat
+    const middleFolded = hand[tipIdx.middle].y > hand[mcpIdx.middle].y;
+    const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
+    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+
+    // Validasi ibu jari dilipat (opsional, tapi lebih strict)
+    const thumbTip = hand[4];
+    const thumbMCP = hand[2];
+    const wristX = hand[0].x;
+    
+    // Ibu jari dianggap dilipat jika dekat dengan pergelangan
+    const thumbFolded = Math.abs(thumbTip.x - wristX) < 0.08;
+
+    // Validasi tambahan: telunjuk harus cukup lurus (tidak bengkok)
+    const indexTip = hand[tipIdx.index];
+    const indexPIP = hand[pipIdx.index];
+    const indexMCP = hand[mcpIdx.index];
+    
+    // Cek kemiringan vertikal (tip harus jauh lebih tinggi dari MCP)
+    const indexStraight = (indexMCP.y - indexTip.y) > 0.1;
+
+    // Cek semua kondisi (tanpa validasi strict ibu jari)
+    if (indexExtended && middleFolded && ringFolded && pinkyFolded) {
+      if (indexStraight) {
+        return { ok: true };
+      }
+      return { ok: false, reason: 'Luruskan jari telunjuk' };
+    }
+
+    // Berikan feedback spesifik
+    if (!indexExtended) {
+      return { ok: false, reason: 'Angkat jari telunjuk' };
+    }
+    if (!middleFolded || !ringFolded || !pinkyFolded) {
+      return { ok: false, reason: 'Lipat jari tengah, manis, dan kelingking' };
+    }
+
+    return { ok: false, reason: 'Pose 1 jari tidak terdeteksi' };
+  } catch (_e) {
+    return { ok: false, reason: 'Gagal memvalidasi pose' };
+  }
+};
+
+const isNoPose = (res) => {
+  return { ok: true };
+};
+
+  // Fungsi untuk mendapatkan deskripsi pose berdasarkan poseName
+  const getPoseDescription = () => {
+    switch (poseName) {
+      case 'open_palm':
+        return 'Buka telapak tangan dengan semua jari terbuka dan renggang';
+      case 'v_pose':
+        return 'Bentuk pose V: angkat telunjuk dan jari tengah, lipat jari lainnya';
+      case 'three_fingers':
+        return 'Bentuk pose 3 jari: angkat telunjuk, tengah, dan manis, lipat kelingking';
+      case 'one_finger':
+        return 'Bentuk pose 1 jari: angkat hanya jari telunjuk, lipat jari lainnya';
+      case 'no_pose':
+        return 'Tidak ada persyaratan pose khusus';
+      default:
+        return 'Arahkan telapak tangan ke kamera';
+    }
+  };
+
   // Gambar overlay landmarks
   const drawOverlay = (res) => {
     if (!showOverlay) return;
@@ -110,35 +312,40 @@ const HandPoseCapture = ({
 
   useEffect(() => {
     let disposed = false;
-
+    let cam = null;
+    let hands = null;
+  
     const init = async () => {
       try {
         setStatus('Meminta akses kamera...');
-
-        // Inisialisasi Hands
-        const hands = new Hands({
-          locateFile: (file) => {
-            const basePath =
-              'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/';
-            return `${basePath}${file}`;
-          },
+        
+        // 1. Setup hands
+        hands = new Hands({
+          locateFile: (file) => 
+            `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
         });
+        
         hands.setOptions({
           maxNumHands: 1,
           modelComplexity: 1,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
-
+        
         hands.onResults((result) => {
-          if (disposed) return;
+          if (disposed) return; // ✅ Early exit
           lastResultRef.current = result;
-          drawOverlay(result);
+          
+          // ✅ Check canvas existence
+          if (overlayRef.current && showOverlay) {
+            drawOverlay(result);
+          }
         });
-
+        
+        if (disposed) return;
         handsRef.current = hands;
-
-        // Siapkan canvas ukuran sesuai
+        
+        // 2. Setup canvas
         if (overlayRef.current) {
           overlayRef.current.width = width;
           overlayRef.current.height = height;
@@ -147,27 +354,38 @@ const HandPoseCapture = ({
           captureCanvasRef.current.width = width;
           captureCanvasRef.current.height = height;
         }
-
-        // Inisialisasi Camera stream
-        const cam = new Camera(videoRef.current, {
+        
+        // 3. Setup camera dengan disposed check
+        if (!videoRef.current) throw new Error('Video element not found');
+        
+        cam = new Camera(videoRef.current, {
           onFrame: async () => {
-            if (!handsRef.current) return;
+            if (disposed || !handsRef.current || !videoRef.current) return; // ✅
+            
             try {
               await handsRef.current.send({ image: videoRef.current });
-            } catch (_e) {
-              // noop; MediaPipe kadang melempar saat switching state
+            } catch (e) {
+              // Log untuk debugging
+              if (!disposed) console.warn('MediaPipe send error:', e);
             }
           },
           width,
           height,
         });
-
+        
         cameraRef.current = cam;
         await cam.start();
-        if (disposed) return;
+        
+        if (disposed) {
+          // ✅ Cleanup jika disposed saat async operation
+          cam.stop();
+          return;
+        }
+        
         setRunning(true);
         setReady(true);
         setStatus('Arahkan telapak tangan ke kamera');
+        
       } catch (e) {
         if (disposed) return;
         setError(e?.message || 'Gagal mengakses kamera');
@@ -175,35 +393,176 @@ const HandPoseCapture = ({
         onInvalid?.('Izin kamera ditolak atau tidak tersedia');
       }
     };
-
+  
     init();
-
+  
     return () => {
       disposed = true;
-      try {
-        if (cameraRef.current) {
-          cameraRef.current.stop();
-          cameraRef.current = null;
+      
+      // Cleanup dengan urutan yang benar
+      if (cam) {
+        try {
+          cam.stop();
+        } catch (e) {
+          console.warn('Camera stop error:', e);
         }
-      } catch {}
-      try {
-        if (handsRef.current) {
-          // MediaPipe Hands tidak punya destroy resmi; lepaskan referensi saja
-          handsRef.current = null;
+      }
+      
+      if (hands) {
+        try {
+          hands.close?.(); // MediaPipe 0.4+ punya close()
+        } catch (e) {
+          console.warn('Hands close error:', e);
         }
-      } catch {}
+      }
+      
+      cameraRef.current = null;
+      handsRef.current = null;
     };
-  }, [width, height, onInvalid, showOverlay]);
+  }, [width, height]); // ⚠️ Hapus onInvalid & showOverlay dari deps
+  
+  // useEffect(() => {
+  //   let disposed = false;
+
+  //   const init = async () => {
+  //     try {
+  //       setStatus('Meminta akses kamera...');
+
+  //       // Inisialisasi Hands
+  //       const hands = new Hands({
+  //         locateFile: (file) => {
+  //           const basePath =
+  //             'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/';
+  //           return `${basePath}${file}`;
+  //         },
+  //       });
+  //       hands.setOptions({
+  //         maxNumHands: 1,
+  //         modelComplexity: 1,
+  //         minDetectionConfidence: 0.5,
+  //         minTrackingConfidence: 0.5,
+  //       });
+
+  //       hands.onResults((result) => {
+  //         if (disposed) return;
+  //         lastResultRef.current = result;
+  //         drawOverlay(result);
+  //       });
+
+  //       handsRef.current = hands;
+
+  //       // Siapkan canvas ukuran sesuai
+  //       if (overlayRef.current) {
+  //         overlayRef.current.width = width;
+  //         overlayRef.current.height = height;
+  //       }
+  //       if (captureCanvasRef.current) {
+  //         captureCanvasRef.current.width = width;
+  //         captureCanvasRef.current.height = height;
+  //       }
+
+  //       // Inisialisasi Camera stream
+  //       const cam = new Camera(videoRef.current, {
+  //         onFrame: async () => {
+  //           if (!handsRef.current) return;
+  //           try {
+  //             await handsRef.current.send({ image: videoRef.current });
+  //           } catch (_e) {
+  //             // noop; MediaPipe kadang melempar saat switching state
+  //           }
+  //         },
+  //         width,
+  //         height,
+  //       });
+
+  //       cameraRef.current = cam;
+  //       await cam.start();
+  //       if (disposed) return;
+  //       setRunning(true);
+  //       setReady(true);
+  //       setStatus('Arahkan telapak tangan ke kamera');
+  //     } catch (e) {
+  //       if (disposed) return;
+  //       setError(e?.message || 'Gagal mengakses kamera');
+  //       setStatus('Gagal mengakses kamera');
+  //       onInvalid?.('Izin kamera ditolak atau tidak tersedia');
+  //     }
+  //   };
+
+  //   init();
+
+  //   return () => {
+  //     disposed = true;
+  //     try {
+  //       if (cameraRef.current) {
+  //         cameraRef.current.stop();
+  //         cameraRef.current = null;
+  //       }
+  //     } catch {}
+  //     try {
+  //       if (handsRef.current) {
+  //         // MediaPipe Hands tidak punya destroy resmi; lepaskan referensi saja
+  //         handsRef.current = null;
+  //       }
+  //     } catch {}
+  //   };
+  // }, [width, height, onInvalid, showOverlay]);
 
   const handleCapture = async () => {
     if (!ready || !videoRef.current) return;
     const res = lastResultRef.current;
     const val = isOpenPalm(res);
-    if (!val.ok) {
-      const reason = val.reason || 'Pose tidak valid';
-      setStatus(reason);
-      onInvalid?.(reason);
-      return;
+    const valPoseV = isVPose(res);
+    const valThreeFingers = isThreeFingers(res);
+    const valOneFinger = isOneFinger(res);
+    const valNoPose = isNoPose(res);
+
+    console.log('valPoseV =>', valPoseV);
+    console.log('val =>', val);
+    console.log('valThreeFingers =>', valThreeFingers);
+    console.log('valOneFinger =>', valOneFinger);
+    console.log('valNoPose =>', valNoPose);
+
+    if (poseName === 'open_palm') {
+      if (!val.ok) {
+        const reason = val.reason || 'Pose tidak valid';
+        setStatus(reason);
+        onInvalid?.(reason);
+        return;
+      }
+    }
+    if (poseName === 'v_pose') {
+      if (!valPoseV.ok) {
+        const reason = valPoseV.reason || 'Pose tidak valid';
+        setStatus(reason);
+        onInvalid?.(reason);
+        return;
+      }
+    }
+    if (poseName === 'three_fingers') { 
+      if (!valThreeFingers.ok) {
+        const reason = valThreeFingers.reason || 'Pose tidak valid';
+        setStatus(reason);
+        onInvalid?.(reason);
+        return;
+      }
+    }
+    if (poseName === 'one_finger') {
+      if (!valOneFinger.ok) {
+        const reason = valOneFinger.reason || 'Pose tidak valid';
+        setStatus(reason);
+        onInvalid?.(reason);
+        return;
+      }
+    }
+
+    if (poseName === 'no_pose') {
+      if (!valNoPose.ok) {
+        const reason = isNoPose.reason || 'Pose tidak valid';
+        setStatus(reason);
+        onInvalid?.(reason);
+        return;
+      }
     }
 
     // Render frame ke canvas non-mirror (video element tidak mempengaruhi drawImage)
@@ -259,6 +618,24 @@ const HandPoseCapture = ({
             transform: mirrored ? 'scaleX(-1)' : 'none',
           }}
         />
+        {/* Info pose di atas video */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 10,
+            left: 10,
+            right: 10,
+            background: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            padding: '8px 12px',
+            borderRadius: 6,
+            fontSize: 14,
+            textAlign: 'center',
+            fontWeight: 500,
+          }}
+        >
+          {getPoseDescription()}
+        </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
