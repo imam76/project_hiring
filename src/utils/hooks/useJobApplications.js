@@ -16,12 +16,12 @@ const jobApplicationKeys = {
  * Helper function untuk menerapkan filter Supabase secara dinamis
  */
 const applyFilters = (query, filters = {}) => {
-  Object.keys(filters).forEach((column) => {
+  for (const column of Object.keys(filters)) {
     const filterValue = filters[column];
 
     if (column === 'or' && typeof filterValue === 'string') {
       query = query.or(filterValue);
-      return;
+      continue;
     }
 
     if (column === 'not' && typeof filterValue === 'object') {
@@ -29,7 +29,7 @@ const applyFilters = (query, filters = {}) => {
       if (notColumn && operator && value !== undefined) {
         query = query.not(notColumn, operator, value);
       }
-      return;
+      continue;
     }
 
     if (
@@ -37,11 +37,11 @@ const applyFilters = (query, filters = {}) => {
       !Array.isArray(filterValue) &&
       filterValue !== null
     ) {
-      Object.keys(filterValue).forEach((operator) => {
+      for (const operator of Object.keys(filterValue)) {
         const value = filterValue[operator];
 
         if (value === undefined || (value === null && operator !== 'is'))
-          return;
+          continue;
 
         switch (operator) {
           case 'eq':
@@ -91,9 +91,9 @@ const applyFilters = (query, filters = {}) => {
               `Operator '${operator}' tidak dikenali untuk column '${column}'`,
             );
         }
-      });
+      }
     }
-  });
+  }
 
   return query;
 };
