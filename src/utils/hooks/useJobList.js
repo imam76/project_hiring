@@ -39,13 +39,13 @@ const jobKeys = {
  */
 const applyFilters = (query, filters = {}) => {
   // Iterasi setiap filter
-  Object.keys(filters).forEach((column) => {
+  for (const column of Object.keys(filters)) {
     const filterValue = filters[column];
 
     // Handle logical OR operator secara khusus
     if (column === 'or' && typeof filterValue === 'string') {
       query = query.or(filterValue);
-      return;
+      continue;
     }
 
     // Handle NOT operator secara khusus
@@ -54,7 +54,7 @@ const applyFilters = (query, filters = {}) => {
       if (notColumn && operator && value !== undefined) {
         query = query.not(notColumn, operator, value);
       }
-      return;
+      continue;
     }
 
     // Jika filterValue adalah object dengan operator
@@ -63,11 +63,11 @@ const applyFilters = (query, filters = {}) => {
       !Array.isArray(filterValue) &&
       filterValue !== null
     ) {
-      Object.keys(filterValue).forEach((operator) => {
+      for (const operator of Object.keys(filterValue)) {
         const value = filterValue[operator];
 
         if (value === undefined || (value === null && operator !== 'is'))
-          return;
+          continue;
 
         switch (operator) {
           // Comparison operators
@@ -125,9 +125,9 @@ const applyFilters = (query, filters = {}) => {
               `Operator '${operator}' tidak dikenali untuk column '${column}'`,
             );
         }
-      });
+      }
     }
-  });
+  }
 
   return query;
 };

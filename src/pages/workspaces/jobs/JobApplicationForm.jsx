@@ -85,7 +85,7 @@ const JobApplicationForm = ({
         setPhotoPreview(base64);
         setPhotoFile(base64);
         form.setFieldsValue({ photo_profile: base64 });
-      } catch (error) {
+      } catch {
         antMessage.error('Gagal memproses gambar');
       }
     }
@@ -104,11 +104,11 @@ const JobApplicationForm = ({
       };
 
       // Remove undefined values
-      Object.keys(applicationData).forEach((key) => {
+      for (const key of Object.keys(applicationData)) {
         if (applicationData[key] === undefined) {
           delete applicationData[key];
         }
-      });
+      }
 
       await onSubmit(applicationData);
     } catch (error) {

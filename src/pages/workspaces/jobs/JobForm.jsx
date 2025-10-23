@@ -48,7 +48,7 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   }, [initialData, form, companyName]);
 
   useEffect(() => {
-    if (jobConfig && jobConfig.application_form) {
+    if (jobConfig?.application_form) {
       setProfileConfig(jobConfig.application_form);
     }
   }, [jobConfig]);
@@ -64,7 +64,7 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         : null,
     };
     // Hapus company_name dari payload karena hanya untuk display
-    delete payload.company_name;
+    payload.company_name = undefined;
 
     // Call parent onSubmit first to save job
     const result = await onSubmit(payload);
