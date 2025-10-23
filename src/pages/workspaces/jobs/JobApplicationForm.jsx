@@ -13,6 +13,9 @@ import {
 } from 'antd';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
+import pose1Image from '@/assets/pose1.png';
+import pose2Image from '@/assets/pose2.png';
+import pose3Image from '@/assets/pose3.png';
 
 const { Text } = Typography;
 
@@ -239,7 +242,11 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: photoPreviewValidate1 ? 'transparent' : '#fafafa',
+                      backgroundImage: photoPreviewValidate1 ? 'none' : `url(${pose1Image})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundColor: photoPreviewValidate1 ? 'transparent' : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate1 ? (
@@ -253,7 +260,7 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
                         Foto 1
                       </Text>
                     )}
@@ -268,7 +275,11 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: photoPreviewValidate2 ? 'transparent' : '#fafafa',
+                      backgroundImage: photoPreviewValidate2 ? 'none' : `url(${pose2Image})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundColor: photoPreviewValidate2 ? 'transparent' : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate2 ? (
@@ -282,7 +293,7 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
                         Foto 2
                       </Text>
                     )}
@@ -297,7 +308,11 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: photoPreviewValidate3 ? 'transparent' : '#fafafa',
+                      backgroundImage: photoPreviewValidate3 ? 'none' : `url(${pose3Image})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundColor: photoPreviewValidate3 ? 'transparent' : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate3 ? (
@@ -311,7 +326,7 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center' }}>
+                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
                         Foto 3
                       </Text>
                     )}

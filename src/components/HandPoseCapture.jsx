@@ -34,6 +34,7 @@ const HandPoseCapture = ({
   const videoRef = useRef(null);
   const overlayRef = useRef(null);
   const captureCanvasRef = useRef(null);
+  const [fadeOverlay, setFadeOverlay] = useState(false);
 
   const cameraRef = useRef(null);
   const handsRef = useRef(null);
@@ -343,12 +344,14 @@ const HandPoseCapture = ({
 
     setStatus('Pose valid, foto diambil otomatis');
     onValid?.({ dataUrl, file });
+    setFadeOverlay(true); // mulai efek fade
 
     // ✅ Auto-reset state setelah 1 detik untuk memungkinkan capture berikutnya
     setTimeout(() => {
+      setFadeOverlay(false); // kembalikan overlay
       setCaptured(false);
       setStatus(getPoseDescription());
-    }, 1000);
+    }, 800);
   }, [captured, onValid, poseName]); // ✅ Tambahkan deps: captured, onValid, poseName
 
   // ✅ Fungsi untuk memvalidasi pose berdasarkan poseName saat onResults
@@ -577,6 +580,8 @@ const HandPoseCapture = ({
             height: '100%',
             pointerEvents: 'none',
             transform: mirrored ? 'scaleX(-1)' : 'none',
+            opacity: fadeOverlay ? 0.4 : 1, // efek redup sementara
+            transition: 'opacity 0.6s ease', // transisi halus
           }}
         />
         {/* Info pose di atas video */}
