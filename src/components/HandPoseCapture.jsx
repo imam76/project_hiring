@@ -343,6 +343,12 @@ const HandPoseCapture = ({
 
     setStatus('Pose valid, foto diambil otomatis');
     onValid?.({ dataUrl, file });
+
+    // ✅ Auto-reset state setelah 1 detik untuk memungkinkan capture berikutnya
+    setTimeout(() => {
+      setCaptured(false);
+      setStatus(getPoseDescription());
+    }, 1000);
   }, [captured, onValid, poseName]); // ✅ Tambahkan deps: captured, onValid, poseName
 
   // ✅ Fungsi untuk memvalidasi pose berdasarkan poseName saat onResults
