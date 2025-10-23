@@ -32,7 +32,7 @@ const AppLayout = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md; // md breakpoint = 768px
 
-  const currentWorkspace = getCurrentWorkspace();
+  const _currentWorkspace = getCurrentWorkspace();
 
   const menuItems = [
     {

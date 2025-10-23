@@ -1,3 +1,4 @@
+import HandPoseCapture from '@/components/HandPoseCapture';
 import { UploadOutlined, UserOutlined } from '@ant-design/icons';
 import {
   Button,
@@ -186,6 +187,27 @@ const JobApplicationForm = ({
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Format: JPG/PNG, Maksimal 2MB
               </Text>
+
+              <div
+                style={{ height: 1, background: '#f0f0f0', margin: '12px 0' }}
+              />
+              <Text strong>Atau ambil foto dengan kamera</Text>
+              <HandPoseCapture
+                width={480}
+                height={360}
+                mirrored
+                showOverlay
+                captureLabel="Capture dari Kamera"
+                onValid={({ dataUrl, file }) => {
+                  setPhotoPreview(dataUrl);
+                  setPhotoFile(dataUrl);
+                  form.setFieldsValue({ photo_profile: dataUrl });
+                  antMessage.success('Pose valid. Foto berhasil diambil.');
+                }}
+                onInvalid={(msg) => {
+                  antMessage.warning(msg || 'Pose tidak valid. Coba lagi.');
+                }}
+              />
             </Space>
           </Form.Item>
         );

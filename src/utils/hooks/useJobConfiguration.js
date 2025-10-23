@@ -256,26 +256,25 @@ const jobConfigurationApi = {
 
       if (error) throw error;
       return data;
-    } else {
-      // Create new configuration
-      const { data: newConfig, error: createError } = await supabase
-        .from('job_configuration')
-        .insert([configData])
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      // Update job_list dengan job_configuration_id
-      const { error: updateJobError } = await supabase
-        .from('job_list')
-        .update({ job_configuration_id: newConfig.id })
-        .eq('id', jobId);
-
-      if (updateJobError) throw updateJobError;
-
-      return newConfig;
     }
+    // Create new configuration
+    const { data: newConfig, error: createError } = await supabase
+      .from('job_configuration')
+      .insert([configData])
+      .select()
+      .single();
+
+    if (createError) throw createError;
+
+    // Update job_list dengan job_configuration_id
+    const { error: updateJobError } = await supabase
+      .from('job_list')
+      .update({ job_configuration_id: newConfig.id })
+      .eq('id', jobId);
+
+    if (updateJobError) throw updateJobError;
+
+    return newConfig;
   },
 };
 

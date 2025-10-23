@@ -19,12 +19,7 @@ const MinimumProfileConfig = ({ value, onChange }) => {
 
   // Initialize field states from value prop
   useEffect(() => {
-    if (
-      value &&
-      value.sections &&
-      value.sections[0] &&
-      value.sections[0].fields
-    ) {
+    if (value?.sections?.[0]?.fields) {
       const states = {};
       for (const field of value.sections[0].fields) {
         if (field.validation.required === true) {
