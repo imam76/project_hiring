@@ -40,9 +40,9 @@ const HandPoseCapture = ({
   const lastResultRef = useRef(null);
 
   // ✅ Ref untuk menampung ID timer auto-capture
-  const autoCaptureTimerRef = useRef(null); 
+  const autoCaptureTimerRef = useRef(null);
   // ✅ State untuk melacak apakah sudah tercapture (mencegah double capture)
-  const [captured, setCaptured] = useState(false); 
+  const [captured, setCaptured] = useState(false);
   // State yang sudah ada
   const [ready, setReady] = useState(false);
   const [running, setRunning] = useState(false);
@@ -97,162 +97,162 @@ const HandPoseCapture = ({
   };
 
   // Validasi pose V (peace sign)
-const isVPose = (res) => {
-  try {
-    const hand = res?.multiHandLandmarks?.[0];
-    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
+  const isVPose = (res) => {
+    try {
+      const hand = res?.multiHandLandmarks?.[0];
+      if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
 
-    // Confidence dari handedness
-    const conf = res?.multiHandedness?.[0]?.score ?? 0;
-    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+      // Confidence dari handedness
+      const conf = res?.multiHandedness?.[0]?.score ?? 0;
+      if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
 
-    // Indeks landmark
-    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
-    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
-    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+      // Indeks landmark
+      const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+      const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+      const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
 
-    // Cek jari telunjuk dan tengah terangkat
-    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
-    const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
+      // Cek jari telunjuk dan tengah terangkat
+      const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+      const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
 
-    // Cek jari manis dan kelingking dilipat
-    const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
-    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+      // Cek jari manis dan kelingking dilipat
+      const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
+      const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
 
-    // Validasi jarak antara telunjuk dan tengah (harus terpisah)
-    const fingerSpread = Math.abs(hand[tipIdx.index].x - hand[tipIdx.middle].x);
-    const spreadOK = fingerSpread >= 0.04; // Threshold bisa disesuaikan
+      // Validasi jarak antara telunjuk dan tengah (harus terpisah)
+      const fingerSpread = Math.abs(hand[tipIdx.index].x - hand[tipIdx.middle].x);
+      const spreadOK = fingerSpread >= 0.04; // Threshold bisa disesuaikan
 
-    // Cek semua kondisi
-    if (indexExtended && middleExtended && ringFolded && pinkyFolded) {
-      if (spreadOK) {
-        return { ok: true };
+      // Cek semua kondisi
+      if (indexExtended && middleExtended && ringFolded && pinkyFolded) {
+        if (spreadOK) {
+          return { ok: true };
+        }
+        return { ok: false, reason: 'Jari telunjuk dan tengah terlalu rapat' };
       }
-      return { ok: false, reason: 'Jari telunjuk dan tengah terlalu rapat' };
-    }
 
-    // Berikan feedback spesifik
-    if (!indexExtended || !middleExtended) {
-      return { ok: false, reason: 'Angkat telunjuk dan jari tengah' };
-    }
-    if (!ringFolded || !pinkyFolded) {
-      return { ok: false, reason: 'Lipat jari manis dan kelingking' };
-    }
-
-    return { ok: false, reason: 'Pose V tidak terdeteksi' };
-  } catch (_e) {
-    return { ok: false, reason: 'Gagal memvalidasi pose' };
-  }
-};
-
-// Validasi pose 3 jari (telunjuk, tengah, manis terangkat)
-const isThreeFingers = (res) => {
-  try {
-    const hand = res?.multiHandLandmarks?.[0];
-    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
-
-    // Confidence dari handedness
-    const conf = res?.multiHandedness?.[0]?.score ?? 0;
-    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
-
-    // Indeks landmark
-    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
-    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
-    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
-
-    // Cek telunjuk, tengah, dan manis terangkat
-    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
-    const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
-    const ringExtended = hand[tipIdx.ring].y < hand[pipIdx.ring].y;
-
-    // Cek kelingking dilipat
-    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
-
-    // Validasi sebaran jari (harus terpisah, tidak mengepal)
-    const xs = [hand[tipIdx.index].x, hand[tipIdx.middle].x, hand[tipIdx.ring].x];
-    const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-    const spread = Math.sqrt(
-      xs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / xs.length
-    );
-    const spreadOK = spread >= 0.025; // Threshold untuk memastikan jari terpisah
-
-    // Cek semua kondisi
-    if (indexExtended && middleExtended && ringExtended && pinkyFolded) {
-      if (spreadOK) {
-        return { ok: true };
+      // Berikan feedback spesifik
+      if (!indexExtended || !middleExtended) {
+        return { ok: false, reason: 'Angkat telunjuk dan jari tengah' };
       }
-      return { ok: false, reason: 'Jari terlalu rapat, buka lebih lebar' };
-    }
-
-    // Berikan feedback spesifik
-    if (!indexExtended || !middleExtended || !ringExtended) {
-      return { ok: false, reason: 'Angkat telunjuk, jari tengah, dan jari manis' };
-    }
-    if (!pinkyFolded) {
-      return { ok: false, reason: 'Lipat jari kelingking' };
-    }
-
-    return { ok: false, reason: 'Pose 3 jari tidak terdeteksi' };
-  } catch (_e) {
-    return { ok: false, reason: 'Gagal memvalidasi pose' };
-  }
-};
-
-// Validasi pose 1 jari (hanya telunjuk terangkat)
-const isOneFinger = (res) => {
-  try {
-    const hand = res?.multiHandLandmarks?.[0];
-    if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
-
-    // Confidence dari handedness
-    const conf = res?.multiHandedness?.[0]?.score ?? 0;
-    if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
-
-    // Indeks landmark
-    const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
-    const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
-    const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
-
-    // Cek telunjuk terangkat
-    const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
-
-    // Cek jari tengah, manis, dan kelingking dilipat
-    const middleFolded = hand[tipIdx.middle].y > hand[mcpIdx.middle].y;
-    const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
-    const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
-
-    // Validasi tambahan: telunjuk harus cukup lurus (tidak bengkok)
-    const indexTip = hand[tipIdx.index];
-    const indexMCP = hand[mcpIdx.index];
-    
-    // Cek kemiringan vertikal (tip harus jauh lebih tinggi dari MCP)
-    const indexStraight = (indexMCP.y - indexTip.y) > 0.1;
-
-    // Cek semua kondisi (tanpa validasi strict ibu jari)
-    if (indexExtended && middleFolded && ringFolded && pinkyFolded) {
-      if (indexStraight) {
-        return { ok: true };
+      if (!ringFolded || !pinkyFolded) {
+        return { ok: false, reason: 'Lipat jari manis dan kelingking' };
       }
-      return { ok: false, reason: 'Luruskan jari telunjuk' };
-    }
 
-    // Berikan feedback spesifik
-    if (!indexExtended) {
-      return { ok: false, reason: 'Angkat jari telunjuk' };
+      return { ok: false, reason: 'Pose V tidak terdeteksi' };
+    } catch (_e) {
+      return { ok: false, reason: 'Gagal memvalidasi pose' };
     }
-    if (!middleFolded || !ringFolded || !pinkyFolded) {
-      return { ok: false, reason: 'Lipat jari tengah, manis, dan kelingking' };
+  };
+
+  // Validasi pose 3 jari (telunjuk, tengah, manis terangkat)
+  const isThreeFingers = (res) => {
+    try {
+      const hand = res?.multiHandLandmarks?.[0];
+      if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
+
+      // Confidence dari handedness
+      const conf = res?.multiHandedness?.[0]?.score ?? 0;
+      if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+
+      // Indeks landmark
+      const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+      const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+      const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+
+      // Cek telunjuk, tengah, dan manis terangkat
+      const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+      const middleExtended = hand[tipIdx.middle].y < hand[pipIdx.middle].y;
+      const ringExtended = hand[tipIdx.ring].y < hand[pipIdx.ring].y;
+
+      // Cek kelingking dilipat
+      const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+
+      // Validasi sebaran jari (harus terpisah, tidak mengepal)
+      const xs = [hand[tipIdx.index].x, hand[tipIdx.middle].x, hand[tipIdx.ring].x];
+      const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+      const spread = Math.sqrt(
+        xs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / xs.length
+      );
+      const spreadOK = spread >= 0.025; // Threshold untuk memastikan jari terpisah
+
+      // Cek semua kondisi
+      if (indexExtended && middleExtended && ringExtended && pinkyFolded) {
+        if (spreadOK) {
+          return { ok: true };
+        }
+        return { ok: false, reason: 'Jari terlalu rapat, buka lebih lebar' };
+      }
+
+      // Berikan feedback spesifik
+      if (!indexExtended || !middleExtended || !ringExtended) {
+        return { ok: false, reason: 'Angkat telunjuk, jari tengah, dan jari manis' };
+      }
+      if (!pinkyFolded) {
+        return { ok: false, reason: 'Lipat jari kelingking' };
+      }
+
+      return { ok: false, reason: 'Pose 3 jari tidak terdeteksi' };
+    } catch (_e) {
+      return { ok: false, reason: 'Gagal memvalidasi pose' };
     }
+  };
 
-    return { ok: false, reason: 'Pose 1 jari tidak terdeteksi' };
-  } catch (_e) {
-    return { ok: false, reason: 'Gagal memvalidasi pose' };
-  }
-};
+  // Validasi pose 1 jari (hanya telunjuk terangkat)
+  const isOneFinger = (res) => {
+    try {
+      const hand = res?.multiHandLandmarks?.[0];
+      if (!hand) return { ok: false, reason: 'Tangan tidak terdeteksi' };
 
-const isNoPose = (res) => {
-  return { ok: true };
-};
+      // Confidence dari handedness
+      const conf = res?.multiHandedness?.[0]?.score ?? 0;
+      if (conf < 0.7) return { ok: false, reason: 'Confidence terlalu rendah' };
+
+      // Indeks landmark
+      const tipIdx = { index: 8, middle: 12, ring: 16, pinky: 20 };
+      const pipIdx = { index: 6, middle: 10, ring: 14, pinky: 18 };
+      const mcpIdx = { index: 5, middle: 9, ring: 13, pinky: 17 };
+
+      // Cek telunjuk terangkat
+      const indexExtended = hand[tipIdx.index].y < hand[pipIdx.index].y;
+
+      // Cek jari tengah, manis, dan kelingking dilipat
+      const middleFolded = hand[tipIdx.middle].y > hand[mcpIdx.middle].y;
+      const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
+      const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
+
+      // Validasi tambahan: telunjuk harus cukup lurus (tidak bengkok)
+      const indexTip = hand[tipIdx.index];
+      const indexMCP = hand[mcpIdx.index];
+
+      // Cek kemiringan vertikal (tip harus jauh lebih tinggi dari MCP)
+      const indexStraight = (indexMCP.y - indexTip.y) > 0.1;
+
+      // Cek semua kondisi (tanpa validasi strict ibu jari)
+      if (indexExtended && middleFolded && ringFolded && pinkyFolded) {
+        if (indexStraight) {
+          return { ok: true };
+        }
+        return { ok: false, reason: 'Luruskan jari telunjuk' };
+      }
+
+      // Berikan feedback spesifik
+      if (!indexExtended) {
+        return { ok: false, reason: 'Angkat jari telunjuk' };
+      }
+      if (!middleFolded || !ringFolded || !pinkyFolded) {
+        return { ok: false, reason: 'Lipat jari tengah, manis, dan kelingking' };
+      }
+
+      return { ok: false, reason: 'Pose 1 jari tidak terdeteksi' };
+    } catch (_e) {
+      return { ok: false, reason: 'Gagal memvalidasi pose' };
+    }
+  };
+
+  const isNoPose = (res) => {
+    return { ok: true };
+  };
 
   // Fungsi untuk mendapatkan deskripsi pose berdasarkan poseName
   const getPoseDescription = () => {
@@ -302,34 +302,34 @@ const isNoPose = (res) => {
     // Mengambil validasi yang sesuai
     let validationResult;
     switch (poseName) {
-        case 'open_palm':
-            validationResult = isOpenPalm(res);
-            break;
-        case 'v_pose':
-            validationResult = isVPose(res);
-            break;
-        case 'three_fingers':
-            validationResult = isThreeFingers(res);
-            break;
-        case 'one_finger':
-            validationResult = isOneFinger(res);
-            break;
-        case 'no_pose':
-        default:
-            validationResult = isNoPose(res);
-            break;
+      case 'open_palm':
+        validationResult = isOpenPalm(res);
+        break;
+      case 'v_pose':
+        validationResult = isVPose(res);
+        break;
+      case 'three_fingers':
+        validationResult = isThreeFingers(res);
+        break;
+      case 'one_finger':
+        validationResult = isOneFinger(res);
+        break;
+      case 'no_pose':
+      default:
+        validationResult = isNoPose(res);
+        break;
     }
-    
+
     if (!validationResult.ok) {
-        // Jika tidak valid saat auto-capture, tidak perlu melakukan apa-apa (pose sudah tervalidasi di onResults)
-        return; 
+      // Jika tidak valid saat auto-capture, tidak perlu melakukan apa-apa (pose sudah tervalidasi di onResults)
+      return;
     }
 
     setCaptured(true); // Set captured agar tidak double-capture
     // Clear timer jika ada, untuk jaga-jaga
     if (autoCaptureTimerRef.current) {
-        clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
+      clearTimeout(autoCaptureTimerRef.current);
+      autoCaptureTimerRef.current = null;
     }
 
     // Render frame ke canvas non-mirror (video element tidak mempengaruhi drawImage)
@@ -340,7 +340,7 @@ const isNoPose = (res) => {
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
     const file = await dataUrlToFile(dataUrl);
-    
+
     setStatus('Pose valid, foto diambil otomatis');
     onValid?.({ dataUrl, file });
   }, [captured, onValid, poseName]); // ✅ Tambahkan deps: captured, onValid, poseName
@@ -348,18 +348,18 @@ const isNoPose = (res) => {
   // ✅ Fungsi untuk memvalidasi pose berdasarkan poseName saat onResults
   const validatePose = useCallback((res) => {
     switch (poseName) {
-        case 'open_palm':
-            return isOpenPalm(res);
-        case 'v_pose':
-            return isVPose(res);
-        case 'three_fingers':
-            return isThreeFingers(res);
-        case 'one_finger':
-            return isOneFinger(res);
-        case 'no_pose':
-            return isNoPose(res);
-        default:
-            return { ok: false, reason: 'Pose tidak dikenal' };
+      case 'open_palm':
+        return isOpenPalm(res);
+      case 'v_pose':
+        return isVPose(res);
+      case 'three_fingers':
+        return isThreeFingers(res);
+      case 'one_finger':
+        return isOneFinger(res);
+      case 'no_pose':
+        return isNoPose(res);
+      default:
+        return { ok: false, reason: 'Pose tidak dikenal' };
     }
   }, [poseName]);
 
@@ -370,33 +370,33 @@ const isNoPose = (res) => {
 
     // Helper untuk membersihkan timer
     const clearTimer = () => {
-        if (autoCaptureTimerRef.current) {
-            clearTimeout(autoCaptureTimerRef.current);
-            autoCaptureTimerRef.current = null;
-        }
+      if (autoCaptureTimerRef.current) {
+        clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+      }
     };
-  
+
     const init = async () => {
       try {
         setStatus('Meminisialisasi kamera...');
-        
+
         // 1. Setup hands
         hands = new Hands({
-          locateFile: (file) => 
+          locateFile: (file) =>
             `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
         });
-        
+
         hands.setOptions({
           maxNumHands: 1,
           modelComplexity: 1,
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
         });
-        
+
         hands.onResults((result) => {
           if (disposed) return;
           lastResultRef.current = result;
-          
+
           if (overlayRef.current && showOverlay) {
             drawOverlay(result);
           }
@@ -406,28 +406,28 @@ const isNoPose = (res) => {
             const val = validatePose(result);
             const isCurrentlyValid = val.ok;
             const currentTimer = autoCaptureTimerRef.current;
-            
+
             if (isCurrentlyValid) {
-                setStatus(`Pose valid! Foto akan diambil dalam ${autoCaptureDelay / 1000} detik...`);
-                if (!currentTimer) {
-                    // Jika pose valid dan timer belum berjalan, mulai timer
-                    autoCaptureTimerRef.current = setTimeout(() => {
-                        if (disposed || captured) return;
-                        performCapture(result);
-                    }, autoCaptureDelay);
-                }
+              setStatus(`Pose valid! Foto akan diambil dalam ${autoCaptureDelay / 1000} detik...`);
+              if (!currentTimer) {
+                // Jika pose valid dan timer belum berjalan, mulai timer
+                autoCaptureTimerRef.current = setTimeout(() => {
+                  if (disposed || captured) return;
+                  performCapture(result);
+                }, autoCaptureDelay);
+              }
             } else {
-                // Jika pose tidak valid, bersihkan timer dan tampilkan reason
-                clearTimer();
-                setStatus(val.reason || getPoseDescription()); // Tampilkan reason atau deskripsi default
+              // Jika pose tidak valid, bersihkan timer dan tampilkan reason
+              clearTimer();
+              setStatus(val.reason || getPoseDescription()); // Tampilkan reason atau deskripsi default
             }
           }
           // AKHIR LOGIKA AUTO-CAPTURE
         });
-        
+
         if (disposed) return;
         handsRef.current = hands;
-        
+
         // 2. Setup canvas
         if (overlayRef.current) {
           overlayRef.current.width = width;
@@ -437,14 +437,14 @@ const isNoPose = (res) => {
           captureCanvasRef.current.width = width;
           captureCanvasRef.current.height = height;
         }
-        
+
         // 3. Setup camera
         if (!videoRef.current) throw new Error('Video element not found');
-        
+
         cam = new Camera(videoRef.current, {
           onFrame: async () => {
             if (disposed || !handsRef.current || !videoRef.current) return;
-            
+
             try {
               await handsRef.current.send({ image: videoRef.current });
             } catch (e) {
@@ -454,19 +454,19 @@ const isNoPose = (res) => {
           width,
           height,
         });
-        
+
         cameraRef.current = cam;
         await cam.start();
-        
+
         if (disposed) {
           cam.stop();
           return;
         }
-        
+
         setRunning(true);
         setReady(true);
         setStatus(getPoseDescription()); // Tampilkan deskripsi pose awal
-        
+
       } catch (e) {
         if (disposed) return;
         setError(e?.message || 'Gagal mengakses kamera');
@@ -474,13 +474,13 @@ const isNoPose = (res) => {
         onInvalid?.('Izin kamera ditolak atau tidak tersedia');
       }
     };
-  
+
     init();
-  
+
     return () => {
       disposed = true;
       clearTimer(); // Pastikan timer juga dibersihkan saat unmount/re-run
-      
+
       // Cleanup dengan urutan yang benar
       if (cam) {
         try {
@@ -489,7 +489,7 @@ const isNoPose = (res) => {
           console.warn('Camera stop error:', e);
         }
       }
-      
+
       if (hands) {
         try {
           hands.close?.();
@@ -497,25 +497,25 @@ const isNoPose = (res) => {
           console.warn('Hands close error:', e);
         }
       }
-      
+
       cameraRef.current = null;
       handsRef.current = null;
     };
-  // ✅ Tambahkan deps yang diperlukan: captured, running, performCapture, validatePose, autoCaptureDelay, getPoseDescription
-  }, [width, height, captured, running, showOverlay, autoCaptureDelay, performCapture, validatePose]); 
+    // ✅ Tambahkan deps yang diperlukan: captured, running, performCapture, validatePose, autoCaptureDelay, getPoseDescription
+  }, [width, height, captured, running, showOverlay, autoCaptureDelay, performCapture, validatePose]);
 
   const handleCapture = async () => {
     if (!ready || !videoRef.current) return;
     const res = lastResultRef.current;
-    
+
     // Validasi pose
     const val = validatePose(res);
 
     if (!val.ok) {
-        const reason = val.reason || 'Pose tidak valid';
-        setStatus(reason);
-        onInvalid?.(reason);
-        return;
+      const reason = val.reason || 'Pose tidak valid';
+      setStatus(reason);
+      onInvalid?.(reason);
+      return;
     }
 
     // Jika pose valid, langsung lakukan capture (manual override)
@@ -524,16 +524,16 @@ const isNoPose = (res) => {
 
   const handleRetake = () => {
     // ✅ Reset state captured dan error saat retake
-    setCaptured(false); 
+    setCaptured(false);
     setError(null);
     setStatus(getPoseDescription());
-    
+
     // Clear timer jika ada
     if (autoCaptureTimerRef.current) {
-        clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
+      clearTimeout(autoCaptureTimerRef.current);
+      autoCaptureTimerRef.current = null;
     }
-    
+
     if (typeof onRetake === 'function') onRetake();
   };
 
@@ -595,10 +595,10 @@ const isNoPose = (res) => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {/* Tombol capture manual hanya berfungsi jika belum tercapture */}
-        <Button 
-            type="primary" 
-            onClick={handleCapture} 
-            disabled={!running || captured}
+        <Button
+          type="primary"
+          onClick={handleCapture}
+          disabled={!running || captured}
         >
           {captureLabel}
         </Button>
