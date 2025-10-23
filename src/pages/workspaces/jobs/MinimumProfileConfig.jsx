@@ -26,7 +26,7 @@ const MinimumProfileConfig = ({ value, onChange }) => {
       value.sections[0].fields
     ) {
       const states = {};
-      value.sections[0].fields.forEach((field) => {
+      for (const field of value.sections[0].fields) {
         if (field.validation.required === true) {
           states[field.key] = 'mandatory';
         } else if (field.validation.required === false) {
@@ -34,14 +34,14 @@ const MinimumProfileConfig = ({ value, onChange }) => {
         } else {
           states[field.key] = 'off';
         }
-      });
+      }
       setFieldStates(states);
     } else {
       // Default states
       const defaultStates = {};
-      PROFILE_FIELDS.forEach((field) => {
+      for (const field of PROFILE_FIELDS) {
         defaultStates[field.key] = 'mandatory';
-      });
+      }
       setFieldStates(defaultStates);
     }
   }, [value]);
