@@ -1,5 +1,5 @@
 import { Button, Typography } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 import { Camera } from '@mediapipe/camera_utils';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
@@ -17,6 +17,7 @@ const { Text } = Typography;
  * - captureLabel: label tombol capture
  * - onValid({ dataUrl, file }): callback saat pose valid dan foto berhasil diambil
  * - onInvalid(message): callback saat pose tidak valid / error
+ * - autoCaptureDelay: number, delay (ms) sebelum capture otomatis setelah pose valid
  */
 const HandPoseCapture = ({
   width = 640,
@@ -28,6 +29,7 @@ const HandPoseCapture = ({
   onInvalid,
   onRetake,
   poseName = 'open_palm' | 'v_pose' | 'three_fingers' | 'one_finger' | 'no_pose',
+  autoCaptureDelay = 1500, // ✅ Tambahkan prop untuk delay auto-capture (1.5 detik)
 }) => {
   const videoRef = useRef(null);
   const overlayRef = useRef(null);
@@ -37,6 +39,11 @@ const HandPoseCapture = ({
   const handsRef = useRef(null);
   const lastResultRef = useRef(null);
 
+  // ✅ Ref untuk menampung ID timer auto-capture
+  const autoCaptureTimerRef = useRef(null); 
+  // ✅ State untuk melacak apakah sudah tercapture (mencegah double capture)
+  const [captured, setCaptured] = useState(false); 
+  // State yang sudah ada
   const [ready, setReady] = useState(false);
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState('Menginisialisasi kamera...');
@@ -116,12 +123,6 @@ const isVPose = (res) => {
     const fingerSpread = Math.abs(hand[tipIdx.index].x - hand[tipIdx.middle].x);
     const spreadOK = fingerSpread >= 0.04; // Threshold bisa disesuaikan
 
-    // Validasi ibu jari (opsional, bisa dilipat atau terbuka)
-    // Untuk V pose yang ketat, ibu jari biasanya dilipat
-    const thumbTip = hand[4];
-    const thumbMCP = hand[2];
-    const thumbFolded = Math.abs(thumbTip.x - thumbMCP.x) < 0.08;
-
     // Cek semua kondisi
     if (indexExtended && middleExtended && ringFolded && pinkyFolded) {
       if (spreadOK) {
@@ -175,17 +176,7 @@ const isThreeFingers = (res) => {
     );
     const spreadOK = spread >= 0.025; // Threshold untuk memastikan jari terpisah
 
-    // Validasi ibu jari (opsional)
-    // Bisa dilipat atau terbuka tergantung kebutuhan
-    const thumbTip = hand[4];
-    const thumbMCP = hand[2];
-    const wristX = hand[0].x;
-    
-    // Opsi 1: Ibu jari bebas (tidak divalidasi)
-    // Opsi 2: Ibu jari harus terbuka
-    const thumbOpen = Math.abs(thumbTip.x - wristX) >= 0.07;
-
-    // Cek semua kondisi (tanpa validasi ibu jari)
+    // Cek semua kondisi
     if (indexExtended && middleExtended && ringExtended && pinkyFolded) {
       if (spreadOK) {
         return { ok: true };
@@ -230,17 +221,8 @@ const isOneFinger = (res) => {
     const ringFolded = hand[tipIdx.ring].y > hand[mcpIdx.ring].y;
     const pinkyFolded = hand[tipIdx.pinky].y > hand[mcpIdx.pinky].y;
 
-    // Validasi ibu jari dilipat (opsional, tapi lebih strict)
-    const thumbTip = hand[4];
-    const thumbMCP = hand[2];
-    const wristX = hand[0].x;
-    
-    // Ibu jari dianggap dilipat jika dekat dengan pergelangan
-    const thumbFolded = Math.abs(thumbTip.x - wristX) < 0.08;
-
     // Validasi tambahan: telunjuk harus cukup lurus (tidak bengkok)
     const indexTip = hand[tipIdx.index];
-    const indexPIP = hand[pipIdx.index];
     const indexMCP = hand[mcpIdx.index];
     
     // Cek kemiringan vertikal (tip harus jauh lebih tinggi dari MCP)
@@ -310,14 +292,93 @@ const isNoPose = (res) => {
     }
   };
 
+  /**
+   * ✅ Fungsi capture dipisahkan agar bisa dipanggil dari handleCapture (manual) dan onResults (otomatis)
+   * Menggunakan useCallback agar stabil dan tidak memicu useEffect atau warning
+   */
+  const performCapture = useCallback(async (res) => {
+    if (!videoRef.current || !res || captured) return;
+
+    // Mengambil validasi yang sesuai
+    let validationResult;
+    switch (poseName) {
+        case 'open_palm':
+            validationResult = isOpenPalm(res);
+            break;
+        case 'v_pose':
+            validationResult = isVPose(res);
+            break;
+        case 'three_fingers':
+            validationResult = isThreeFingers(res);
+            break;
+        case 'one_finger':
+            validationResult = isOneFinger(res);
+            break;
+        case 'no_pose':
+        default:
+            validationResult = isNoPose(res);
+            break;
+    }
+    
+    if (!validationResult.ok) {
+        // Jika tidak valid saat auto-capture, tidak perlu melakukan apa-apa (pose sudah tervalidasi di onResults)
+        return; 
+    }
+
+    setCaptured(true); // Set captured agar tidak double-capture
+    // Clear timer jika ada, untuk jaga-jaga
+    if (autoCaptureTimerRef.current) {
+        clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+    }
+
+    // Render frame ke canvas non-mirror (video element tidak mempengaruhi drawImage)
+    const canvas = captureCanvasRef.current;
+    if (!canvas) return; // Guard
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const file = await dataUrlToFile(dataUrl);
+    
+    setStatus('Pose valid, foto diambil otomatis');
+    onValid?.({ dataUrl, file });
+  }, [captured, onValid, poseName]); // ✅ Tambahkan deps: captured, onValid, poseName
+
+  // ✅ Fungsi untuk memvalidasi pose berdasarkan poseName saat onResults
+  const validatePose = useCallback((res) => {
+    switch (poseName) {
+        case 'open_palm':
+            return isOpenPalm(res);
+        case 'v_pose':
+            return isVPose(res);
+        case 'three_fingers':
+            return isThreeFingers(res);
+        case 'one_finger':
+            return isOneFinger(res);
+        case 'no_pose':
+            return isNoPose(res);
+        default:
+            return { ok: false, reason: 'Pose tidak dikenal' };
+    }
+  }, [poseName]);
+
   useEffect(() => {
     let disposed = false;
     let cam = null;
     let hands = null;
+
+    // Helper untuk membersihkan timer
+    const clearTimer = () => {
+        if (autoCaptureTimerRef.current) {
+            clearTimeout(autoCaptureTimerRef.current);
+            autoCaptureTimerRef.current = null;
+        }
+    };
   
     const init = async () => {
       try {
-        setStatus('Meminta akses kamera...');
+        setStatus('Meminisialisasi kamera...');
         
         // 1. Setup hands
         hands = new Hands({
@@ -333,13 +394,35 @@ const isNoPose = (res) => {
         });
         
         hands.onResults((result) => {
-          if (disposed) return; // ✅ Early exit
+          if (disposed) return;
           lastResultRef.current = result;
           
-          // ✅ Check canvas existence
           if (overlayRef.current && showOverlay) {
             drawOverlay(result);
           }
+
+          // ✅ LOGIKA AUTO-CAPTURE
+          if (!captured && running) {
+            const val = validatePose(result);
+            const isCurrentlyValid = val.ok;
+            const currentTimer = autoCaptureTimerRef.current;
+            
+            if (isCurrentlyValid) {
+                setStatus(`Pose valid! Foto akan diambil dalam ${autoCaptureDelay / 1000} detik...`);
+                if (!currentTimer) {
+                    // Jika pose valid dan timer belum berjalan, mulai timer
+                    autoCaptureTimerRef.current = setTimeout(() => {
+                        if (disposed || captured) return;
+                        performCapture(result);
+                    }, autoCaptureDelay);
+                }
+            } else {
+                // Jika pose tidak valid, bersihkan timer dan tampilkan reason
+                clearTimer();
+                setStatus(val.reason || getPoseDescription()); // Tampilkan reason atau deskripsi default
+            }
+          }
+          // AKHIR LOGIKA AUTO-CAPTURE
         });
         
         if (disposed) return;
@@ -355,17 +438,16 @@ const isNoPose = (res) => {
           captureCanvasRef.current.height = height;
         }
         
-        // 3. Setup camera dengan disposed check
+        // 3. Setup camera
         if (!videoRef.current) throw new Error('Video element not found');
         
         cam = new Camera(videoRef.current, {
           onFrame: async () => {
-            if (disposed || !handsRef.current || !videoRef.current) return; // ✅
+            if (disposed || !handsRef.current || !videoRef.current) return;
             
             try {
               await handsRef.current.send({ image: videoRef.current });
             } catch (e) {
-              // Log untuk debugging
               if (!disposed) console.warn('MediaPipe send error:', e);
             }
           },
@@ -377,14 +459,13 @@ const isNoPose = (res) => {
         await cam.start();
         
         if (disposed) {
-          // ✅ Cleanup jika disposed saat async operation
           cam.stop();
           return;
         }
         
         setRunning(true);
         setReady(true);
-        setStatus('Arahkan telapak tangan ke kamera');
+        setStatus(getPoseDescription()); // Tampilkan deskripsi pose awal
         
       } catch (e) {
         if (disposed) return;
@@ -398,6 +479,7 @@ const isNoPose = (res) => {
   
     return () => {
       disposed = true;
+      clearTimer(); // Pastikan timer juga dibersihkan saat unmount/re-run
       
       // Cleanup dengan urutan yang benar
       if (cam) {
@@ -410,7 +492,7 @@ const isNoPose = (res) => {
       
       if (hands) {
         try {
-          hands.close?.(); // MediaPipe 0.4+ punya close()
+          hands.close?.();
         } catch (e) {
           console.warn('Hands close error:', e);
         }
@@ -419,166 +501,39 @@ const isNoPose = (res) => {
       cameraRef.current = null;
       handsRef.current = null;
     };
-  }, [width, height]); // ⚠️ Hapus onInvalid & showOverlay dari deps
-  
-  // useEffect(() => {
-  //   let disposed = false;
-
-  //   const init = async () => {
-  //     try {
-  //       setStatus('Meminta akses kamera...');
-
-  //       // Inisialisasi Hands
-  //       const hands = new Hands({
-  //         locateFile: (file) => {
-  //           const basePath =
-  //             'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/';
-  //           return `${basePath}${file}`;
-  //         },
-  //       });
-  //       hands.setOptions({
-  //         maxNumHands: 1,
-  //         modelComplexity: 1,
-  //         minDetectionConfidence: 0.5,
-  //         minTrackingConfidence: 0.5,
-  //       });
-
-  //       hands.onResults((result) => {
-  //         if (disposed) return;
-  //         lastResultRef.current = result;
-  //         drawOverlay(result);
-  //       });
-
-  //       handsRef.current = hands;
-
-  //       // Siapkan canvas ukuran sesuai
-  //       if (overlayRef.current) {
-  //         overlayRef.current.width = width;
-  //         overlayRef.current.height = height;
-  //       }
-  //       if (captureCanvasRef.current) {
-  //         captureCanvasRef.current.width = width;
-  //         captureCanvasRef.current.height = height;
-  //       }
-
-  //       // Inisialisasi Camera stream
-  //       const cam = new Camera(videoRef.current, {
-  //         onFrame: async () => {
-  //           if (!handsRef.current) return;
-  //           try {
-  //             await handsRef.current.send({ image: videoRef.current });
-  //           } catch (_e) {
-  //             // noop; MediaPipe kadang melempar saat switching state
-  //           }
-  //         },
-  //         width,
-  //         height,
-  //       });
-
-  //       cameraRef.current = cam;
-  //       await cam.start();
-  //       if (disposed) return;
-  //       setRunning(true);
-  //       setReady(true);
-  //       setStatus('Arahkan telapak tangan ke kamera');
-  //     } catch (e) {
-  //       if (disposed) return;
-  //       setError(e?.message || 'Gagal mengakses kamera');
-  //       setStatus('Gagal mengakses kamera');
-  //       onInvalid?.('Izin kamera ditolak atau tidak tersedia');
-  //     }
-  //   };
-
-  //   init();
-
-  //   return () => {
-  //     disposed = true;
-  //     try {
-  //       if (cameraRef.current) {
-  //         cameraRef.current.stop();
-  //         cameraRef.current = null;
-  //       }
-  //     } catch {}
-  //     try {
-  //       if (handsRef.current) {
-  //         // MediaPipe Hands tidak punya destroy resmi; lepaskan referensi saja
-  //         handsRef.current = null;
-  //       }
-  //     } catch {}
-  //   };
-  // }, [width, height, onInvalid, showOverlay]);
+  // ✅ Tambahkan deps yang diperlukan: captured, running, performCapture, validatePose, autoCaptureDelay, getPoseDescription
+  }, [width, height, captured, running, showOverlay, autoCaptureDelay, performCapture, validatePose]); 
 
   const handleCapture = async () => {
     if (!ready || !videoRef.current) return;
     const res = lastResultRef.current;
-    const val = isOpenPalm(res);
-    const valPoseV = isVPose(res);
-    const valThreeFingers = isThreeFingers(res);
-    const valOneFinger = isOneFinger(res);
-    const valNoPose = isNoPose(res);
+    
+    // Validasi pose
+    const val = validatePose(res);
 
-    console.log('valPoseV =>', valPoseV);
-    console.log('val =>', val);
-    console.log('valThreeFingers =>', valThreeFingers);
-    console.log('valOneFinger =>', valOneFinger);
-    console.log('valNoPose =>', valNoPose);
-
-    if (poseName === 'open_palm') {
-      if (!val.ok) {
+    if (!val.ok) {
         const reason = val.reason || 'Pose tidak valid';
         setStatus(reason);
         onInvalid?.(reason);
         return;
-      }
-    }
-    if (poseName === 'v_pose') {
-      if (!valPoseV.ok) {
-        const reason = valPoseV.reason || 'Pose tidak valid';
-        setStatus(reason);
-        onInvalid?.(reason);
-        return;
-      }
-    }
-    if (poseName === 'three_fingers') { 
-      if (!valThreeFingers.ok) {
-        const reason = valThreeFingers.reason || 'Pose tidak valid';
-        setStatus(reason);
-        onInvalid?.(reason);
-        return;
-      }
-    }
-    if (poseName === 'one_finger') {
-      if (!valOneFinger.ok) {
-        const reason = valOneFinger.reason || 'Pose tidak valid';
-        setStatus(reason);
-        onInvalid?.(reason);
-        return;
-      }
     }
 
-    if (poseName === 'no_pose') {
-      if (!valNoPose.ok) {
-        const reason = isNoPose.reason || 'Pose tidak valid';
-        setStatus(reason);
-        onInvalid?.(reason);
-        return;
-      }
-    }
-
-    // Render frame ke canvas non-mirror (video element tidak mempengaruhi drawImage)
-    const canvas = captureCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    const file = await dataUrlToFile(dataUrl);
-    setStatus('Pose valid, foto diambil');
-    onValid?.({ dataUrl, file });
+    // Jika pose valid, langsung lakukan capture (manual override)
+    await performCapture(res);
   };
 
   const handleRetake = () => {
+    // ✅ Reset state captured dan error saat retake
+    setCaptured(false); 
     setError(null);
-    setStatus('Arahkan telapak tangan ke kamera');
+    setStatus(getPoseDescription());
+    
+    // Clear timer jika ada
+    if (autoCaptureTimerRef.current) {
+        clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+    }
+    
     if (typeof onRetake === 'function') onRetake();
   };
 
@@ -639,12 +594,18 @@ const isNoPose = (res) => {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Button type="primary" onClick={handleCapture} disabled={!running}>
+        {/* Tombol capture manual hanya berfungsi jika belum tercapture */}
+        <Button 
+            type="primary" 
+            onClick={handleCapture} 
+            disabled={!running || captured}
+        >
           {captureLabel}
         </Button>
         <Button onClick={handleRetake} disabled={!running}>
           Ulangi
         </Button>
+        {/* Tampilkan status */}
         <Text type={error ? 'danger' : 'secondary'}>{status}</Text>
       </div>
 
