@@ -32,6 +32,8 @@ import {
   Tag,
   Typography,
   message,
+  Divider,
+  Drawer,
 } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -45,7 +47,6 @@ const JobsPage = () => {
   const navigate = useNavigate();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [applyModalVisible, setApplyModalVisible] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
@@ -113,9 +114,8 @@ const JobsPage = () => {
     }
   };
 
-  const handleViewDetail = (job) => {
+  const handleSelectJob = (job) => {
     setSelectedJob(job);
-    setDetailModalVisible(true);
   };
 
   const handleEdit = (job) => {
@@ -140,7 +140,7 @@ const JobsPage = () => {
       });
 
       message.success(
-        `Berhasil melamar untuk posisi ${selectedJobForApply.title}`,
+        `Berhasil melamar untuk posisi ${selectedJobForApply?.title || ''}`
       );
       setApplyModalVisible(false);
       setSelectedJobForApply(null);
@@ -209,7 +209,7 @@ const JobsPage = () => {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
           marginBottom: '24px',
@@ -237,6 +237,7 @@ const JobsPage = () => {
           {isAdminOrCompany && (
             <Button
               type="primary"
+              color='primary'
               icon={<PlusOutlined />}
               onClick={() => setCreateModalVisible(true)}
             >
@@ -255,133 +256,123 @@ const JobsPage = () => {
           }
         />
       ) : (
-        <Row gutter={[16, 16]}>
-          {jobs.map((job) => (
-            <Col xs={24} sm={12} md={8} lg={6} key={job.id}>
-              <Card
-                hoverable
-                style={{
-                  borderRadius: '8px',
-                  height: '100%',
-                }}
-                actions={
-                  isAdminOrCompany
-                    ? [
+        <Row gutter={16} style={{ flex: 1, overflow: 'hidden' }}>
+          {/* Left Column - Job List */}
+          <Col
+            xs={24}
+            sm={24}
+            md={10}
+            lg={8}
+            style={{
+              overflow: 'auto',
+              borderRight: '1px solid #f0f0f0',
+              paddingRight: '16px',
+            }}
+          >
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              {jobs.map((job) => (
+                <Card
+                  key={job.id}
+                  hoverable
+                  onClick={() => handleSelectJob(job)}
+                  style={{
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    backgroundColor:
+                      selectedJob?.id === job.id ? '#e6f7ff' : 'white',
+                    borderColor:
+                      selectedJob?.id === job.id ? '#1890ff' : '#d9d9d9',
+                    borderWidth: selectedJob?.id === job.id ? '2px' : '1px',
+                  }}
+                >
+                  <div>
+                    <Text strong style={{ fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                      {job.title}
+                    </Text>
+                    {job.company_name && (
+                      <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+                        {job.company_name}
+                      </Text>
+                    )}
+                    <div style={{ marginBottom: '8px' }}>
+                      {job.location && (
+                        <Tag color="blue" style={{ marginBottom: '4px' }}>
+                          {job.location}
+                        </Tag>
+                      )}
+                      {job.type && (
+                        <Tag color="green">{job.type}</Tag>
+                      )}
+                    </div>
+                    {job.salary_min && job.salary_max && (
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        Rp {job.salary_min.toLocaleString()}
+                      </Text>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </Space>
+          </Col>
+
+          {/* Right Column - Job Details */}
+          <Col
+            xs={24}
+            sm={24}
+            md={14}
+            lg={16}
+            style={{
+              overflow: 'auto',
+              paddingLeft: '16px',
+            }}
+          >
+            {selectedJob ? (
+              <div>
+                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <Title level={2}>{selectedJob.title}</Title>
+                    <Text type="secondary">{selectedJob.company_name}</Text>
+                  </div>
+                  <Space>
+                    {isAdminOrCompany ? (
+                      <>
                         <Button
-                          key="view"
-                          type="text"
-                          icon={<EyeOutlined />}
-                          onClick={() => handleViewDetail(job)}
-                          title="View details"
-                        >
-                          View
-                        </Button>,
-                        <Button
-                          key="manage"
-                          type="text"
-                          icon={<TeamOutlined />}
-                          onClick={() => handleManageApplications(job.id)}
-                          title="Manage applications"
-                        >
-                          Manage
-                        </Button>,
-                        <Button
-                          key="edit"
-                          type="text"
+                          type="primary"
                           icon={<EditOutlined />}
-                          onClick={() => handleEdit(job)}
-                          title="Edit job"
+                          onClick={() => handleEdit(selectedJob)}
                         >
                           Edit
-                        </Button>,
+                        </Button>
+                        <Button
+                          icon={<TeamOutlined />}
+                          onClick={() => handleManageApplications(selectedJob.id)}
+                        >
+                          Manage
+                        </Button>
                         <Popconfirm
-                          key="delete"
                           title="Delete job"
                           description="Are you sure you want to delete this job?"
-                          onConfirm={() => handleDeleteJob(job.id)}
+                          onConfirm={() => handleDeleteJob(selectedJob.id)}
                           okText="Yes"
                           cancelText="No"
                         >
-                          <Button
-                            type="text"
-                            danger
-                            icon={<DeleteOutlined />}
-                            title="Delete job"
-                          >
+                          <Button type="primary" danger icon={<DeleteOutlined />}>
                             Delete
                           </Button>
-                        </Popconfirm>,
-                      ]
-                    : [
-                        <Button
-                          key="view"
-                          type="text"
-                          icon={<EyeOutlined />}
-                          onClick={() => handleViewDetail(job)}
-                          title="View details"
-                        >
-                          View
-                        </Button>,
-                        <ApplyButton key="apply-btn" job={job} />,
-                      ]
-                }
-              >
-                <Space
-                  direction="vertical"
-                  size="small"
-                  style={{ width: '100%' }}
-                >
-                  {/* Job Title */}
-                  <div>
-                    <Text strong style={{ fontSize: '16px' }}>
-                      {job.title}
-                    </Text>
-                  </div>
+                        </Popconfirm>
+                      </>
+                    ) : (
+                      <ApplyButton job={selectedJob} />
+                    )}
+                  </Space>
+                </div>
 
-                  {/* Posted By */}
-                  {job.company_name && (
-                    <div>
-                      <Text type="secondary">{job.company_name}</Text>
-                    </div>
-                  )}
-
-                  {/* Location */}
-                  {job.location && (
-                    <div>
-                      <Tag color="blue">{job.location}</Tag>
-                    </div>
-                  )}
-
-                  {/* Job Type */}
-                  {job.type && (
-                    <div>
-                      <Tag color="green">{job.type}</Tag>
-                    </div>
-                  )}
-
-                  {/* Salary Range */}
-                  {job.salary_min && job.salary_max && (
-                    <div>
-                      <Text type="secondary">
-                        Rp {job.salary_min.toLocaleString()} - Rp{' '}
-                        {job.salary_max.toLocaleString()}
-                      </Text>
-                    </div>
-                  )}
-
-                  {/* Description Preview */}
-                  {job.description && (
-                    <Paragraph
-                      ellipsis={{ rows: 2 }}
-                      style={{ margin: 0, color: '#666' }}
-                    >
-                      {job.description}
-                    </Paragraph>
-                  )}
-                </Space>
-              </Card>
-            </Col>
-          ))}
+                <JobDetail job={selectedJob} />
+              </div>
+            ) : (
+              <Empty description="Pilih pekerjaan dari daftar di sebelah kiri" />
+            )}
+          </Col>
         </Row>
       )}
 
@@ -424,33 +415,6 @@ const JobsPage = () => {
             isSubmitting={updateJobMutation.isPending}
           />
         )}
-      </Modal>
-
-      {/* Job Detail Modal */}
-      <Modal
-        title="Job Details"
-        open={detailModalVisible}
-        onCancel={() => {
-          setDetailModalVisible(false);
-          setSelectedJob(null);
-        }}
-        footer={
-          isAdminOrCompany ? null : (
-            <Button
-              type="primary"
-              onClick={() => {
-                handleApplyJob(selectedJob);
-                setDetailModalVisible(false);
-                setSelectedJob(null);
-              }}
-            >
-              Apply for this job
-            </Button>
-          )
-        }
-        width={800}
-      >
-        {selectedJob && <JobDetail job={selectedJob} />}
       </Modal>
 
       {/* Apply Job Modal */}

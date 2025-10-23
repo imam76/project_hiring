@@ -1,5 +1,5 @@
 import { setGlobalNotificationApi } from '@/utils/globalNotification';
-import { App as AntdApp, ConfigProvider } from 'antd';
+import { App as AntdApp } from 'antd';
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 
@@ -19,16 +19,8 @@ function AppWithNotification() {
 
 export default function App() {
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#1890ff',
-        },
-      }}
-    >
-      <AntdApp>
-        <AppWithNotification />
-      </AntdApp>
-    </ConfigProvider>
+    <AntdApp>
+      <AppWithNotification />
+    </AntdApp>
   );
 }

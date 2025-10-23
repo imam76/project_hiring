@@ -177,6 +177,38 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       </Form.Item>
 
       <Form.Item
+        name="job_desc"
+        label="Job Description"
+        rules={[{ required: true, message: 'Please enter job description' }]}
+      >
+        <Input.TextArea 
+          placeholder="Describe the job responsibilities, tasks, and expectations..."
+          rows={5}
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="minimum_qualification"
+        label="Minimum Qualifications"
+        rules={[{ required: true, message: 'Please enter minimum qualifications' }]}
+      >
+        <Input.TextArea 
+          placeholder="List the required education, skills, experience, and certifications..."
+          rows={4}
+        />
+      </Form.Item>
+
+      <Form.Item
+        name="about"
+        label="About"
+      >
+        <Input.TextArea 
+          placeholder="Additional information about the company, team, or role..."
+          rows={4}
+        />
+      </Form.Item>
+
+      <Form.Item
         name="status"
         label="Status"
         rules={[{ required: true, message: 'Please select status' }]}

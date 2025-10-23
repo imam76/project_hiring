@@ -1,6 +1,6 @@
-import { Descriptions, Divider, Tag, Typography } from 'antd';
+import { Descriptions, Divider, Tag, Typography, Badge, Space } from 'antd';
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 const JobDetail = ({ job }) => {
   // Company name dari relasi user atau fallback
@@ -10,43 +10,76 @@ const JobDetail = ({ job }) => {
 
   return (
     <div>
-      <Title level={3}>{job.title}</Title>
+      {/* <Title level={3}>{job.title}</Title>
+      <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '16px' }}>
+        {companyName}
+      </Text> */}
 
-      <Descriptions bordered column={1}>
-        <Descriptions.Item label="Posted By">{companyName}</Descriptions.Item>
-        <Descriptions.Item label="Location">{job.location}</Descriptions.Item>
-        <Descriptions.Item label="Job Type">
-          <Tag color="green">{job.type}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label="Status">
-          <Tag color={job.status === 'active' ? 'green' : 'red'}>
-            {job.status}
-          </Tag>
-        </Descriptions.Item>
+      {/* Address */}
+      {job.location && (
+        <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '16px' }}>
+          📍 {job.location}
+        </Text>
+      )}
+
+      {/* Badges Section */}
+      <Space direction="horizontal" size="small">
         {job.salary_min && job.salary_max && (
-          <Descriptions.Item label="Salary Range">
-            Rp {job.salary_min.toLocaleString()} - Rp{' '}
-            {job.salary_max.toLocaleString()}
-          </Descriptions.Item>
+          <div>
+            <Badge
+              color='blue'
+              count={`Rp${(job.salary_min / 1000000).toFixed(1)}M - Rp${(job.salary_max / 1000000).toFixed(1)}M`}
+            />
+          </div>
         )}
-        {job.contact_email && (
-          <Descriptions.Item label="Contact Email">
-            {job.contact_email}
-          </Descriptions.Item>
-        )}
-        {job.contact_phone && (
-          <Descriptions.Item label="Contact Phone">
-            {job.contact_phone}
-          </Descriptions.Item>
-        )}
-      </Descriptions>
+        <div>
+          {job.type && (
+            <Badge count={job.type} color='blue' />
+          )}
+          {job.status && (
+            <Badge
+              count={job.status}
+              color='blue'
+            />
+          )}
+        </div>
+      </Space>
 
       {job.description && (
+        <>
+          <Title level={4}>Job Description</Title>
+          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
+            {job.description}
+          </Paragraph>
+        </>
+      )}
+
+      {job.job_desc && (
         <>
           <Divider />
           <Title level={4}>Job Description</Title>
           <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
-            {job.description}
+            {job.job_desc}
+          </Paragraph>
+        </>
+      )}
+
+      {job.minimum_qualification && (
+        <>
+          <Divider />
+          <Title level={4}>Minimum Qualifications</Title>
+          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
+            {job.minimum_qualification}
+          </Paragraph>
+        </>
+      )}
+
+      {job.about && (
+        <>
+          <Divider />
+          <Title level={4}>About</Title>
+          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
+            {job.about}
           </Paragraph>
         </>
       )}
