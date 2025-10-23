@@ -11,31 +11,64 @@ import {
   MailOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { LoginForm, ProFormText } from '@ant-design/pro-components';
+import {
+  LoginForm,
+  ProFormRadio,
+  ProFormText,
+} from '@ant-design/pro-components';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import * as z from 'zod';
 
 const { Text } = Typography;
 
-// Register form schema (based on Rust DTO)
-export const RegisterFormSchema = z.object({
-  username: z
-    .string()
-    .min(1, 'Username is required')
-    .min(3, 'Username must be at least 3 characters long'),
-  email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  password: z
-    .string()
-    .min(1, 'Password is required')
-    .min(8, 'Password must be at least 8 characters long'),
-});
+// Register form schema (conditional requirements for company role)
+export const RegisterFormSchema = z
+  .object({
+    role: z.enum(['candidate', 'company']),
+    username: z.string().optional().or(z.literal('')),
+    email: z.string().min(1, 'Email is required').email('Invalid email format'),
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .min(8, 'Password must be at least 8 characters long'),
+    company_name: z.string().optional().or(z.literal('')),
+    phone_number: z.string().optional().or(z.literal('')),
+  })
+  .superRefine((val, ctx) => {
+    if (val.role === 'company') {
+      if (!val.username || val.username.trim().length < 3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['username'],
+          message: 'Username is required (min 3) for company',
+        });
+      }
+      if (!val.company_name || val.company_name.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['company_name'],
+          message: 'Company name is required',
+        });
+      }
+      if (!val.phone_number || val.phone_number.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phone_number'],
+          message: 'Phone number is required',
+        });
+      }
+    }
+  });
 
 // Constants
 const DEFAULT_CREDENTIALS = {
-  username: ENV.IS_LOCAL ? 'testuser' : '',
-  email: ENV.IS_LOCAL ? 'test@mailinator.com' : '',
-  password: ENV.IS_LOCAL ? '12345678' : '',
+  role: 'candidate',
+  username: ENV.IS_LOCAL || true ? 'testuser' : '',
+  email: ENV.IS_LOCAL || true ? 'test@mailinator.com' : '',
+  password: ENV.IS_LOCAL || true ? '12345678' : '',
+  company_name: ENV.IS_LOCAL || true ? 'Demo Company' : '',
+  phone_number: ENV.IS_LOCAL || true ? '+628111111111' : '',
 };
 
 export default function RegisterFormComponent({ onSubmit, isLoading }) {
@@ -43,10 +76,13 @@ export default function RegisterFormComponent({ onSubmit, isLoading }) {
     handleSubmit,
     control,
     formState: { errors, isSubmitting },
+    watch,
   } = useForm({
     resolver: zodResolver(RegisterFormSchema),
     defaultValues: DEFAULT_CREDENTIALS,
   });
+
+  const role = watch('role');
 
   // Components
   const SocialLoginActions = () => (
@@ -88,27 +124,43 @@ export default function RegisterFormComponent({ onSubmit, isLoading }) {
       actions={<SocialLoginActions />}
     >
       <Controller
-        name="username"
+        name="role"
         control={control}
         render={({ field }) => (
-          <ProFormText
+          <ProFormRadio.Group
             {...field}
-            fieldProps={{
-              size: 'large',
-              prefix: <UserOutlined className="prefixIcon" />,
-            }}
-            placeholder="Username (min 3 characters)"
-            validateStatus={errors.username && 'error'}
-            extra={
-              errors?.username?.message && (
-                <Text className="text-xs text-red-500">
-                  {errors.username.message}
-                </Text>
-              )
-            }
+            radioType="button"
+            options={[
+              { label: 'Candidate', value: 'candidate' },
+              { label: 'Company', value: 'company' },
+            ]}
           />
         )}
       />
+      {role === 'company' && (
+        <Controller
+          name="username"
+          control={control}
+          render={({ field }) => (
+            <ProFormText
+              {...field}
+              fieldProps={{
+                size: 'large',
+                prefix: <UserOutlined className="prefixIcon" />,
+              }}
+              placeholder="Username (min 3 characters)"
+              validateStatus={errors.username && 'error'}
+              extra={
+                errors?.username?.message && (
+                  <Text className="text-xs text-red-500">
+                    {errors.username.message}
+                  </Text>
+                )
+              }
+            />
+          )}
+        />
+      )}
       <Controller
         name="email"
         control={control}
@@ -131,6 +183,54 @@ export default function RegisterFormComponent({ onSubmit, isLoading }) {
           />
         )}
       />
+      {role === 'company' && (
+        <Controller
+          name="company_name"
+          control={control}
+          render={({ field }) => (
+            <ProFormText
+              {...field}
+              fieldProps={{
+                size: 'large',
+                prefix: <UserOutlined className="prefixIcon" />,
+              }}
+              placeholder="Company name"
+              validateStatus={errors.company_name && 'error'}
+              extra={
+                errors?.company_name?.message && (
+                  <Text className="text-xs text-red-500">
+                    {errors.company_name.message}
+                  </Text>
+                )
+              }
+            />
+          )}
+        />
+      )}
+      {role === 'company' && (
+        <Controller
+          name="phone_number"
+          control={control}
+          render={({ field }) => (
+            <ProFormText
+              {...field}
+              fieldProps={{
+                size: 'large',
+                prefix: <UserOutlined className="prefixIcon" />,
+              }}
+              placeholder="Phone number"
+              validateStatus={errors.phone_number && 'error'}
+              extra={
+                errors?.phone_number?.message && (
+                  <Text className="text-xs text-red-500">
+                    {errors.phone_number.message}
+                  </Text>
+                )
+              }
+            />
+          )}
+        />
+      )}
       <Controller
         name="password"
         control={control}

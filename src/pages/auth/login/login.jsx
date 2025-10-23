@@ -9,6 +9,7 @@ import {
   showSuccessNotification,
 } from '@/utils/globalNotification';
 
+import { devLocalLogin } from '@/utils/auth/devLocalAuth';
 import LoginFormComponent from './form';
 
 const { useBreakpoint } = Grid;
@@ -32,7 +33,7 @@ export default () => {
   const screens = useBreakpoint();
 
   // Zustand store
-  const { login, isAuthenticated, isLoading } = useAuthStore();
+  const { login, isAuthenticated, isLoading, setUser } = useAuthStore();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -44,6 +45,29 @@ export default () => {
 
   const onSubmit = async (data) => {
     try {
+      if (ENV.IS_LOCAL || true) {
+        const result = await devLocalLogin(data.email, data.password);
+
+        if (result.success) {
+          setUser(result.user);
+
+          showSuccessNotification({
+            message: 'Login Successful',
+            description: 'Welcome back! Redirecting to dashboard.',
+            duration: 3,
+          });
+
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
+        } else {
+          showErrorNotification({
+            message: 'Login Failed',
+            description: result.error,
+          });
+        }
+        return;
+      }
+
       const result = await login(data.email, data.password);
 
       if (result.success) {

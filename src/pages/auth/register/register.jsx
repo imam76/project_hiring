@@ -1,10 +1,13 @@
 import { ENV, logger } from '@/config/env';
 import { useAuthStore } from '@/stores';
+import { devLocalLogin } from '@/utils/auth/devLocalAuth';
 import {
   showErrorNotification,
   showSuccessNotification,
 } from '@/utils/globalNotification';
+import { useCreateUser } from '@/utils/hooks/useUsers';
 import { Card } from 'antd';
+import bcrypt from 'bcryptjs';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import RegisterFormComponent from './form';
@@ -27,7 +30,10 @@ export default () => {
   const location = useLocation();
 
   // Zustand store
-  const { register, isAuthenticated, isLoading } = useAuthStore();
+  const { register, isAuthenticated, isLoading, setUser } = useAuthStore();
+
+  // Supabase create user hook
+  const createUser = useCreateUser();
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -39,6 +45,40 @@ export default () => {
 
   const onSubmit = async (data) => {
     try {
+      if (ENV.IS_LOCAL || true) {
+        // Hash password lalu buat user di Supabase
+        const password_hash = await bcrypt.hash(data.password, 10);
+        const isCompany = data.role === 'company';
+        const payload = {
+          email: data.email,
+          password_hash,
+          full_name: isCompany ? data.username : null,
+          role: isCompany ? 'company' : 'candidate', // Ubah dari 'user' menjadi 'candidate'
+          company_name: isCompany ? data.company_name : null,
+          phone_number: isCompany ? data.phone_number : null,
+        };
+        await createUser.mutateAsync(payload);
+
+        // Setelah register lokal, langsung login lokal
+        const loginResult = await devLocalLogin(data.email, data.password);
+        if (loginResult.success) {
+          setUser(loginResult.user);
+          showSuccessNotification({
+            message: 'Registration Successful',
+            description: 'Account created! Redirecting to dashboard...',
+            duration: 3,
+          });
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
+        } else {
+          showErrorNotification({
+            message: 'Registration/Login Failed',
+            description: loginResult.error,
+          });
+        }
+        return;
+      }
+
       const result = await register(data.username, data.email, data.password);
 
       if (result.success) {
@@ -68,7 +108,10 @@ export default () => {
   return (
     <div style={CONTAINER_STYLES}>
       <Card>
-        <RegisterFormComponent onSubmit={onSubmit} isLoading={isLoading} />
+        <RegisterFormComponent
+          onSubmit={onSubmit}
+          isLoading={ENV.IS_LOCAL || true ? createUser.isPending : isLoading}
+        />
       </Card>
     </div>
   );

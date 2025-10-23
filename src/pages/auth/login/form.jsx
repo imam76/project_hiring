@@ -38,9 +38,8 @@ export default function LoginFormComponent({ onSubmit, isLoading }) {
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(LoginFormSchema),
-    defaultValues: ENV.IS_LOCAL
-      ? DEFAULT_CREDENTIALS
-      : { email: '', password: '' },
+    defaultValues:
+      ENV.IS_LOCAL || true ? DEFAULT_CREDENTIALS : { email: '', password: '' },
   });
 
   // Components
