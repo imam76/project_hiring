@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Camera } from '@mediapipe/camera_utils';
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
-// MediaPipe dependencies
 import { Hands } from '@mediapipe/hands';
 
 const { Text } = Typography;
@@ -33,7 +32,7 @@ const HandPoseCapture = ({
     'three_fingers' |
     'one_finger' |
     'no_pose',
-  autoCaptureDelay = 1500, // ✅ Tambahkan prop untuk delay auto-capture (1.5 detik)
+  autoCaptureDelay = 1500,
 }) => {
   const videoRef = useRef(null);
   const overlayRef = useRef(null);
@@ -44,9 +43,7 @@ const HandPoseCapture = ({
   const handsRef = useRef(null);
   const lastResultRef = useRef(null);
 
-  // ✅ Ref untuk menampung ID timer auto-capture
   const autoCaptureTimerRef = useRef(null);
-  // ✅ State untuk melacak apakah sudah tercapture (mencegah double capture)
   const [captured, setCaptured] = useState(false);
   // State yang sudah ada
   const [ready, setReady] = useState(false);
@@ -239,7 +236,7 @@ const HandPoseCapture = ({
       const indexTip = hand[tipIdx.index];
       const indexMCP = hand[mcpIdx.index];
 
-      // Cek kemiringan vertikal (tip harus jauh lebih tinggi dari MCP)
+      // Cek kemiringan vertikal
       const indexStraight = indexMCP.y - indexTip.y > 0.1;
 
       // Cek semua kondisi (tanpa validasi strict ibu jari)
@@ -267,7 +264,7 @@ const HandPoseCapture = ({
     }
   };
 
-  const isNoPose = (res) => {
+  const isNoPose = (_res) => {
     return { ok: true };
   };
 
@@ -309,10 +306,6 @@ const HandPoseCapture = ({
     }
   };
 
-  /**
-   * ✅ Fungsi capture dipisahkan agar bisa dipanggil dari handleCapture (manual) dan onResults (otomatis)
-   * Menggunakan useCallback agar stabil dan tidak memicu useEffect atau warning
-   */
   const performCapture = useCallback(
     async (res) => {
       if (!videoRef.current || !res || captured) return;
@@ -332,25 +325,22 @@ const HandPoseCapture = ({
         case 'one_finger':
           validationResult = isOneFinger(res);
           break;
-        case 'no_pose':
         default:
           validationResult = isNoPose(res);
           break;
       }
 
       if (!validationResult.ok) {
-        // Jika tidak valid saat auto-capture, tidak perlu melakukan apa-apa (pose sudah tervalidasi di onResults)
+        // Jika tidak valid saat auto-capture, tidak perlu melakukan apa-apa
         return;
       }
 
-      setCaptured(true); // Set captured agar tidak double-capture
-      // Clear timer jika ada, untuk jaga-jaga
+      setCaptured(true);
       if (autoCaptureTimerRef.current) {
         clearTimeout(autoCaptureTimerRef.current);
         autoCaptureTimerRef.current = null;
       }
 
-      // Render frame ke canvas non-mirror (video element tidak mempengaruhi drawImage)
       const canvas = captureCanvasRef.current;
       if (!canvas) return; // Guard
       const ctx = canvas.getContext('2d');
@@ -363,17 +353,16 @@ const HandPoseCapture = ({
       onValid?.({ dataUrl, file });
       setFadeOverlay(true); // mulai efek fade
 
-      // ✅ Auto-reset state setelah 1 detik untuk memungkinkan capture berikutnya
+      // Auto reset
       setTimeout(() => {
-        setFadeOverlay(false); // kembalikan overlay
+        setFadeOverlay(false);
         setCaptured(false);
         setStatus(getPoseDescription());
       }, 800);
     },
     [captured, onValid, poseName],
-  ); // ✅ Tambahkan deps: captured, onValid, poseName
+  );
 
-  // ✅ Fungsi untuk memvalidasi pose berdasarkan poseName saat onResults
   const validatePose = useCallback(
     (res) => {
       switch (poseName) {
@@ -411,7 +400,7 @@ const HandPoseCapture = ({
       try {
         setStatus('Meminisialisasi kamera...');
 
-        // 1. Setup hands
+        // Setup hands
         hands = new Hands({
           locateFile: (file) =>
             `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`,
@@ -432,7 +421,7 @@ const HandPoseCapture = ({
             drawOverlay(result);
           }
 
-          // ✅ LOGIKA AUTO-CAPTURE
+          // AUTO-CAPTURE
           if (!captured && running) {
             const val = validatePose(result);
             const isCurrentlyValid = val.ok;
@@ -455,13 +444,11 @@ const HandPoseCapture = ({
               setStatus(val.reason || getPoseDescription()); // Tampilkan reason atau deskripsi default
             }
           }
-          // AKHIR LOGIKA AUTO-CAPTURE
         });
 
         if (disposed) return;
         handsRef.current = hands;
 
-        // 2. Setup canvas
         if (overlayRef.current) {
           overlayRef.current.width = width;
           overlayRef.current.height = height;
@@ -471,7 +458,6 @@ const HandPoseCapture = ({
           captureCanvasRef.current.height = height;
         }
 
-        // 3. Setup camera
         if (!videoRef.current) throw new Error('Video element not found');
 
         cam = new Camera(videoRef.current, {
@@ -498,7 +484,7 @@ const HandPoseCapture = ({
 
         setRunning(true);
         setReady(true);
-        setStatus(getPoseDescription()); // Tampilkan deskripsi pose awal
+        setStatus(getPoseDescription());
       } catch (e) {
         if (disposed) return;
         setError(e?.message || 'Gagal mengakses kamera');
@@ -511,9 +497,8 @@ const HandPoseCapture = ({
 
     return () => {
       disposed = true;
-      clearTimer(); // Pastikan timer juga dibersihkan saat unmount/re-run
+      clearTimer();
 
-      // Cleanup dengan urutan yang benar
       if (cam) {
         try {
           cam.stop();
@@ -533,7 +518,6 @@ const HandPoseCapture = ({
       cameraRef.current = null;
       handsRef.current = null;
     };
-    // ✅ Tambahkan deps yang diperlukan: captured, running, performCapture, validatePose, autoCaptureDelay, getPoseDescription
   }, [
     width,
     height,
@@ -549,7 +533,6 @@ const HandPoseCapture = ({
     if (!ready || !videoRef.current) return;
     const res = lastResultRef.current;
 
-    // Validasi pose
     const val = validatePose(res);
 
     if (!val.ok) {
@@ -564,7 +547,7 @@ const HandPoseCapture = ({
   };
 
   const handleRetake = () => {
-    // ✅ Reset state captured dan error saat retake
+    // Reset state captured dan error saat retake
     setCaptured(false);
     setError(null);
     setStatus(getPoseDescription());
@@ -648,7 +631,6 @@ const HandPoseCapture = ({
         <Button onClick={handleRetake} disabled={!running}>
           Ulangi
         </Button>
-        {/* Tampilkan status */}
         <Text type={error ? 'danger' : 'secondary'}>{status}</Text>
       </div>
 
