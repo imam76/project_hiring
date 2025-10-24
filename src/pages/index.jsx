@@ -1,18 +1,10 @@
 import { useAuthStore } from '@/stores';
-import {
-  AccountBookOutlined,
-  LogoutOutlined,
-  PieChartOutlined,
-  SwapOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
+import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Dropdown, Grid, Layout, Menu, Space, Typography } from 'antd';
-import { BrainIcon, Briefcase } from 'lucide-react';
-import { ChevronRight } from 'lucide-react';
 import {
+  Briefcase,
   ChevronLeft,
-  CreditCard,
-  Database,
+  ChevronRight,
   LayoutDashboard,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -39,11 +31,6 @@ const AppLayout = () => {
       key: '/dashboard',
       icon: <LayoutDashboard size={16} />,
       label: isMobile && !mobileMenuOpen ? '' : 'Dashboard',
-    },
-    {
-      key: '/datastores',
-      icon: <Database size={16} />,
-      label: isMobile && !mobileMenuOpen ? '' : 'Datastores',
     },
     {
       key: '/jobs',

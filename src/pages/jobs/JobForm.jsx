@@ -1,8 +1,3 @@
-import { useAuthStore } from '@/stores/authStore';
-import {
-  useJobConfigurationByJobId,
-  useUpsertJobConfiguration,
-} from '@/utils/hooks/useJobConfiguration';
 import {
   Button,
   DatePicker,
@@ -15,6 +10,13 @@ import {
 } from 'antd';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
+
+import { useAuthStore } from '@/stores/authStore';
+import {
+  useJobConfigurationByJobId,
+  useUpsertJobConfiguration,
+} from '@/utils/hooks/useJobConfiguration';
+
 import MinimumProfileConfig from './MinimumProfileConfig';
 
 const { Option } = Select;
@@ -24,17 +26,14 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   const { user } = useAuthStore();
   const [profileConfig, setProfileConfig] = useState(null);
 
-  // Company name dari user profile
   const companyName =
     user?.company_name || user?.full_name || user?.email || 'User';
 
-  // Fetch job configuration if editing existing job
   const { data: jobConfig } = useJobConfigurationByJobId(initialData?.id);
   const upsertConfigMutation = useUpsertJobConfiguration();
 
   useEffect(() => {
     if (initialData) {
-      // Convert started_on to moment object if it exists
       const formData = {
         ...initialData,
         started_on: initialData.started_on
@@ -43,7 +42,6 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       };
       form.setFieldsValue(formData);
     }
-    // Set company name dari user profile (hanya untuk display)
     form.setFieldsValue({ company_name: companyName });
   }, [initialData, form, companyName]);
 
@@ -54,34 +52,26 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
   }, [jobConfig]);
 
   const handleSubmit = async (values) => {
-    // Tambahkan company_id dari user.id
     const payload = {
       ...values,
       company_id: user?.id,
-      // Convert started_on to ISO string if it exists
       started_on: values.started_on
         ? values.started_on.format('YYYY-MM-DD')
         : null,
     };
-    // Hapus company_name dari payload karena hanya untuk display
     payload.company_name = undefined;
 
-    // Call parent onSubmit first to save job
     const result = await onSubmit(payload);
 
-    // Selalu buat/update job_configuration setelah job berhasil dibuat/diupdate
     const jobId = result?.id || initialData?.id;
     if (jobId) {
       try {
         await upsertConfigMutation.mutateAsync({
           jobId: jobId,
-          configData: {
-            application_form: profileConfig || null, // Simpan null jika tidak ada konfigurasi
-          },
+          configData: {},
         });
       } catch (error) {
         console.error('Failed to save job configuration:', error);
-        // Tidak throw error agar user tidak terganggu jika hanya config yang gagal
       }
     }
   };
@@ -181,7 +171,7 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
         label="Job Description"
         rules={[{ required: true, message: 'Please enter job description' }]}
       >
-        <Input.TextArea 
+        <Input.TextArea
           placeholder="Describe the job responsibilities, tasks, and expectations..."
           rows={5}
         />
@@ -190,19 +180,18 @@ const JobForm = ({ initialData, onSubmit, onCancel, isSubmitting }) => {
       <Form.Item
         name="minimum_qualification"
         label="Minimum Qualifications"
-        rules={[{ required: true, message: 'Please enter minimum qualifications' }]}
+        rules={[
+          { required: true, message: 'Please enter minimum qualifications' },
+        ]}
       >
-        <Input.TextArea 
+        <Input.TextArea
           placeholder="List the required education, skills, experience, and certifications..."
           rows={4}
         />
       </Form.Item>
 
-      <Form.Item
-        name="about"
-        label="About"
-      >
-        <Input.TextArea 
+      <Form.Item name="about" label="About">
+        <Input.TextArea
           placeholder="Additional information about the company, team, or role..."
           rows={4}
         />

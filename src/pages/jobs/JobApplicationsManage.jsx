@@ -1,14 +1,7 @@
 import {
-  useApplicationsByJobId,
-  useUpdateApplicationStatus,
-  useUpdateJobApplication,
-} from '@/utils/hooks/useJobApplications';
-import { useJob } from '@/utils/hooks/useJobList';
-import {
   ArrowLeftOutlined,
   CloseOutlined,
   EditOutlined,
-  LinkedinOutlined,
   MailOutlined,
   PhoneOutlined,
   SaveOutlined,
@@ -34,6 +27,13 @@ import {
 import moment from 'moment';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
+
+import {
+  useApplicationsByJobId,
+  useUpdateApplicationStatus,
+  useUpdateJobApplication,
+} from '@/utils/hooks/useJobApplications';
+import { useJob } from '@/utils/hooks/useJobList';
 
 const { TextArea } = Input;
 
@@ -67,7 +67,6 @@ const JobApplicationsManage = () => {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesForm] = Form.useForm();
 
-  // Fetch data
   const { data: job, isLoading: jobLoading } = useJob(jobId);
   const {
     data: applications,
@@ -75,7 +74,6 @@ const JobApplicationsManage = () => {
     refetch,
   } = useApplicationsByJobId(jobId);
 
-  // Mutations
   const updateStatusMutation = useUpdateApplicationStatus();
   const updateApplicationMutation = useUpdateJobApplication();
 
@@ -110,7 +108,6 @@ const JobApplicationsManage = () => {
       message.success('Catatan berhasil disimpan');
       setEditingNotes(false);
       refetch();
-      // Update selected application
       setSelectedApplication({
         ...selectedApplication,
         notes: values.notes,

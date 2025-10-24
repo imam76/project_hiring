@@ -16,18 +16,20 @@ const jobApplicationKeys = {
  * Helper function untuk menerapkan filter Supabase secara dinamis
  */
 const applyFilters = (query, filters = {}) => {
+  let filteredQuery = query;
+
   for (const column of Object.keys(filters)) {
     const filterValue = filters[column];
 
     if (column === 'or' && typeof filterValue === 'string') {
-      query = query.or(filterValue);
+      filteredQuery = filteredQuery.or(filterValue);
       continue;
     }
 
     if (column === 'not' && typeof filterValue === 'object') {
       const { column: notColumn, operator, value } = filterValue;
       if (notColumn && operator && value !== undefined) {
-        query = query.not(notColumn, operator, value);
+        filteredQuery = filteredQuery.not(notColumn, operator, value);
       }
       continue;
     }
@@ -45,45 +47,45 @@ const applyFilters = (query, filters = {}) => {
 
         switch (operator) {
           case 'eq':
-            query = query.eq(column, value);
+            filteredQuery = filteredQuery.eq(column, value);
             break;
           case 'neq':
-            query = query.neq(column, value);
+            filteredQuery = filteredQuery.neq(column, value);
             break;
           case 'gt':
-            query = query.gt(column, value);
+            filteredQuery = filteredQuery.gt(column, value);
             break;
           case 'gte':
-            query = query.gte(column, value);
+            filteredQuery = filteredQuery.gte(column, value);
             break;
           case 'lt':
-            query = query.lt(column, value);
+            filteredQuery = filteredQuery.lt(column, value);
             break;
           case 'lte':
-            query = query.lte(column, value);
+            filteredQuery = filteredQuery.lte(column, value);
             break;
           case 'like':
-            query = query.like(column, value);
+            filteredQuery = filteredQuery.like(column, value);
             break;
           case 'ilike':
-            query = query.ilike(column, value);
+            filteredQuery = filteredQuery.ilike(column, value);
             break;
           case 'is':
-            query = query.is(column, value);
+            filteredQuery = filteredQuery.is(column, value);
             break;
           case 'in':
             if (Array.isArray(value)) {
-              query = query.in(column, value);
+              filteredQuery = filteredQuery.in(column, value);
             }
             break;
           case 'contains':
             if (Array.isArray(value)) {
-              query = query.contains(column, value);
+              filteredQuery = filteredQuery.contains(column, value);
             }
             break;
           case 'containedBy':
             if (Array.isArray(value)) {
-              query = query.containedBy(column, value);
+              filteredQuery = filteredQuery.containedBy(column, value);
             }
             break;
           default:
@@ -95,7 +97,7 @@ const applyFilters = (query, filters = {}) => {
     }
   }
 
-  return query;
+  return filteredQuery;
 };
 
 // API functions

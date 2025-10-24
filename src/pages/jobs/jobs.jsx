@@ -1,20 +1,7 @@
-import { useAuthStore } from '@/stores/authStore';
-import {
-  useCheckUserApplication,
-  useCreateJobApplication,
-} from '@/utils/hooks/useJobApplications';
-import { useJobConfigurationByJobId } from '@/utils/hooks/useJobConfiguration';
-import {
-  useCreateJob,
-  useDeleteJob,
-  useJobs,
-  useUpdateJob,
-} from '@/utils/hooks/useJobList';
 import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  EyeOutlined,
   PlusOutlined,
   ReloadOutlined,
   TeamOutlined,
@@ -32,16 +19,27 @@ import {
   Tag,
   Typography,
   message,
-  Divider,
-  Drawer,
 } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+
+import { useAuthStore } from '@/stores/authStore';
+import {
+  useCheckUserApplication,
+  useCreateJobApplication,
+} from '@/utils/hooks/useJobApplications';
+import { useJobConfigurationByJobId } from '@/utils/hooks/useJobConfiguration';
+import {
+  useCreateJob,
+  useDeleteJob,
+  useJobs,
+  useUpdateJob,
+} from '@/utils/hooks/useJobList';
 import JobApplicationForm from './JobApplicationForm';
 import JobDetail from './JobDetail';
 import JobForm from './JobForm';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const JobsPage = () => {
   const navigate = useNavigate();
@@ -51,26 +49,21 @@ const JobsPage = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState(null);
 
-  // Get user data from auth store
   const { user } = useAuthStore();
   console.log('user =>', user);
 
-  // Check if user is admin or company
   const isAdminOrCompany =
     user?.role === 'admin' ||
     user?.role === 'company' ||
     user?.is_admin === true;
 
-  // Fetch jobs
   const { data: jobs, isLoading, refetch } = useJobs();
 
-  // Mutations
   const createJobMutation = useCreateJob();
   const updateJobMutation = useUpdateJob();
   const deleteJobMutation = useDeleteJob();
   const createApplicationMutation = useCreateJobApplication();
 
-  // Fetch job configuration untuk job yang sedang dipilih untuk apply
   const { data: jobConfig, isLoading: jobConfigLoading } =
     useJobConfigurationByJobId(selectedJobForApply?.id);
 
@@ -80,7 +73,6 @@ const JobsPage = () => {
       message.success('Job created successfully');
       setCreateModalVisible(false);
       refetch();
-      return result; // Return result untuk digunakan di JobForm
     } catch (error) {
       message.error(error.message || 'Failed to create job');
       throw error;
@@ -97,7 +89,6 @@ const JobsPage = () => {
       setEditModalVisible(false);
       setSelectedJob(null);
       refetch();
-      return result; // Return result untuk digunakan di JobForm
     } catch (error) {
       message.error(error.message || 'Failed to update job');
       throw error;
@@ -124,7 +115,6 @@ const JobsPage = () => {
   };
 
   const handleApplyJob = (job) => {
-    // Buka modal apply (check duplikasi akan dilakukan di button render)
     setSelectedJobForApply(job);
     setApplyModalVisible(true);
   };
@@ -140,11 +130,10 @@ const JobsPage = () => {
       });
 
       message.success(
-        `Berhasil melamar untuk posisi ${selectedJobForApply?.title || ''}`
+        `Berhasil melamar untuk posisi ${selectedJobForApply?.title || ''}`,
       );
       setApplyModalVisible(false);
       setSelectedJobForApply(null);
-      refetch(); // Refresh jobs list
     } catch (error) {
       console.error('Submit application error:', error);
       if (error.message?.includes('duplicate') || error.code === '23505') {
@@ -160,7 +149,6 @@ const JobsPage = () => {
     navigate(`/jobs/${jobId}/applications`);
   };
 
-  // Component helper untuk render Apply button dengan status check
   const ApplyButton = ({ job }) => {
     const { data: existingApplication, isLoading: checkingApplication } =
       useCheckUserApplication(job.id, user?.id);
@@ -237,7 +225,7 @@ const JobsPage = () => {
           {isAdminOrCompany && (
             <Button
               type="primary"
-              color='primary'
+              color="primary"
               icon={<PlusOutlined />}
               onClick={() => setCreateModalVisible(true)}
             >
@@ -286,11 +274,25 @@ const JobsPage = () => {
                   }}
                 >
                   <div>
-                    <Text strong style={{ fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                    <Text
+                      strong
+                      style={{
+                        fontSize: '14px',
+                        display: 'block',
+                        marginBottom: '8px',
+                      }}
+                    >
                       {job.title}
                     </Text>
                     {job.company_name && (
-                      <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '4px' }}>
+                      <Text
+                        type="secondary"
+                        style={{
+                          fontSize: '12px',
+                          display: 'block',
+                          marginBottom: '4px',
+                        }}
+                      >
                         {job.company_name}
                       </Text>
                     )}
@@ -300,9 +302,7 @@ const JobsPage = () => {
                           {job.location}
                         </Tag>
                       )}
-                      {job.type && (
-                        <Tag color="green">{job.type}</Tag>
-                      )}
+                      {job.type && <Tag color="green">{job.type}</Tag>}
                     </div>
                     {job.salary_min && job.salary_max && (
                       <Text type="secondary" style={{ fontSize: '12px' }}>
@@ -328,7 +328,14 @@ const JobsPage = () => {
           >
             {selectedJob ? (
               <div>
-                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    marginBottom: '24px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
                   <div>
                     <Title level={2}>{selectedJob.title}</Title>
                     <Text type="secondary">{selectedJob.company_name}</Text>
@@ -345,7 +352,9 @@ const JobsPage = () => {
                         </Button>
                         <Button
                           icon={<TeamOutlined />}
-                          onClick={() => handleManageApplications(selectedJob.id)}
+                          onClick={() =>
+                            handleManageApplications(selectedJob.id)
+                          }
                         >
                           Manage
                         </Button>
@@ -356,7 +365,11 @@ const JobsPage = () => {
                           okText="Yes"
                           cancelText="No"
                         >
-                          <Button type="primary" danger icon={<DeleteOutlined />}>
+                          <Button
+                            type="primary"
+                            danger
+                            icon={<DeleteOutlined />}
+                          >
                             Delete
                           </Button>
                         </Popconfirm>
@@ -427,7 +440,6 @@ const JobsPage = () => {
         }}
         footer={null}
         width={700}
-        destroyOnClose
       >
         {selectedJobForApply &&
           (jobConfigLoading ? (

@@ -1,4 +1,4 @@
-import { Descriptions, Divider, Tag, Typography, Badge, Space } from 'antd';
+import { Badge, Divider, Space, Typography } from 'antd';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -10,14 +10,11 @@ const JobDetail = ({ job }) => {
 
   return (
     <div>
-      {/* <Title level={3}>{job.title}</Title>
-      <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '16px' }}>
-        {companyName}
-      </Text> */}
-
-      {/* Address */}
       {job.location && (
-        <Text type="secondary" style={{ fontSize: '14px', display: 'block', marginBottom: '16px' }}>
+        <Text
+          type="secondary"
+          style={{ fontSize: '14px', display: 'block', marginBottom: '16px' }}
+        >
           📍 {job.location}
         </Text>
       )}
@@ -27,21 +24,14 @@ const JobDetail = ({ job }) => {
         {job.salary_min && job.salary_max && (
           <div>
             <Badge
-              color='blue'
+              color="blue"
               count={`Rp${(job.salary_min / 1000000).toFixed(1)}M - Rp${(job.salary_max / 1000000).toFixed(1)}M`}
             />
           </div>
         )}
         <div>
-          {job.type && (
-            <Badge count={job.type} color='blue' />
-          )}
-          {job.status && (
-            <Badge
-              count={job.status}
-              color='blue'
-            />
-          )}
+          {job.type && <Badge count={job.type} color="blue" />}
+          {job.status && <Badge count={job.status} color="blue" />}
         </div>
       </Space>
 
@@ -78,9 +68,7 @@ const JobDetail = ({ job }) => {
         <>
           <Divider />
           <Title level={4}>About</Title>
-          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>
-            {job.about}
-          </Paragraph>
+          <Paragraph style={{ whiteSpace: 'pre-wrap' }}>{job.about}</Paragraph>
         </>
       )}
 

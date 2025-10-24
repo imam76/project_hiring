@@ -1,5 +1,3 @@
-import HandPoseCapture from '@/components/HandPoseCapture';
-import { UploadOutlined, UserOutlined } from '@ant-design/icons';
 import {
   Button,
   DatePicker,
@@ -13,13 +11,15 @@ import {
 } from 'antd';
 import moment from 'moment';
 import { useEffect, useState } from 'react';
+
 import pose1Image from '@/assets/pose1.png';
 import pose2Image from '@/assets/pose2.png';
 import pose3Image from '@/assets/pose3.png';
+import HandPoseCapture from '@/components/HandPoseCapture';
+import { UploadOutlined, UserOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 
-// Helper untuk convert file ke base64
 const getBase64 = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -45,11 +45,9 @@ const JobApplicationForm = ({
 
   const [photoFile, setPhotoFile] = useState(null);
 
-  // Extract fields dari jobConfig
   const fields = jobConfig?.application_form?.sections?.[0]?.fields || [];
 
   useEffect(() => {
-    // Pre-fill form dengan data user
     if (userData) {
       const initialValues = {
         full_name: userData.full_name || userData.username || '',
@@ -64,19 +62,16 @@ const JobApplicationForm = ({
       };
       form.setFieldsValue(initialValues);
 
-      // Set photo preview jika ada
       if (userData.photo_profile) {
         setPhotoPreview(userData.photo_profile);
       }
     }
   }, [userData, form]);
 
-  // Handle photo upload
   const handlePhotoChange = async (info) => {
     const file = info.file.originFileObj || info.file;
 
     if (file) {
-      // Validasi file
       const isImage = file.type?.startsWith('image/');
       if (!isImage) {
         antMessage.error('File harus berupa gambar (JPG/PNG)!');
@@ -98,12 +93,10 @@ const JobApplicationForm = ({
         antMessage.error('Gagal memproses gambar');
       }
     }
-    return false; // Prevent default upload behavior
   };
 
   const handleSubmit = async (values) => {
     try {
-      // Format data untuk dikirim
       const applicationData = {
         ...values,
         photo_profile: photoFile || photoPreview,
@@ -112,7 +105,6 @@ const JobApplicationForm = ({
           : undefined,
       };
 
-      // Remove undefined values
       for (const key of Object.keys(applicationData)) {
         if (applicationData[key] === undefined) {
           delete applicationData[key];
@@ -125,7 +117,6 @@ const JobApplicationForm = ({
     }
   };
 
-  // Render field berdasarkan tipe
   const renderField = (field) => {
     const isRequired = field.validation?.required === true;
     const fieldKey = field.key;
@@ -209,19 +200,18 @@ const JobApplicationForm = ({
                 poseName={poseStep}
                 onValid={({ dataUrl, file }) => {
                   if (poseStep === 'three_fingers') {
-                    // Validasi 1
                     setPhotoPreviewValidate1(dataUrl);
                     antMessage.success('Validasi 1 berhasil!');
                     setPoseStep('v_pose');
                   } else if (poseStep === 'v_pose') {
-                    // Validasi 2
                     setPhotoPreviewValidate2(dataUrl);
                     antMessage.success('Validasi 2 berhasil!');
                     setPoseStep('one_finger');
                   } else if (poseStep === 'one_finger') {
-                    // Validasi 3
                     setPhotoPreviewValidate3(dataUrl);
-                    antMessage.success('Validasi 3 berhasil! Semua validasi selesai.');
+                    antMessage.success(
+                      'Validasi 3 berhasil! Semua validasi selesai.',
+                    );
                   }
                 }}
                 onInvalid={(msg) => {
@@ -242,11 +232,15 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundImage: photoPreviewValidate1 ? 'none' : `url(${pose1Image})`,
+                      backgroundImage: photoPreviewValidate1
+                        ? 'none'
+                        : `url(${pose1Image})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
-                      backgroundColor: photoPreviewValidate1 ? 'transparent' : '#f5f5f5',
+                      backgroundColor: photoPreviewValidate1
+                        ? 'transparent'
+                        : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate1 ? (
@@ -260,7 +254,16 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
+                      <Text
+                        type="secondary"
+                        style={{
+                          fontSize: 12,
+                          textAlign: 'center',
+                          backgroundColor: 'rgba(255,255,255,0.7)',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
                         Foto 1
                       </Text>
                     )}
@@ -275,11 +278,15 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundImage: photoPreviewValidate2 ? 'none' : `url(${pose2Image})`,
+                      backgroundImage: photoPreviewValidate2
+                        ? 'none'
+                        : `url(${pose2Image})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
-                      backgroundColor: photoPreviewValidate2 ? 'transparent' : '#f5f5f5',
+                      backgroundColor: photoPreviewValidate2
+                        ? 'transparent'
+                        : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate2 ? (
@@ -293,7 +300,16 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
+                      <Text
+                        type="secondary"
+                        style={{
+                          fontSize: 12,
+                          textAlign: 'center',
+                          backgroundColor: 'rgba(255,255,255,0.7)',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
                         Foto 2
                       </Text>
                     )}
@@ -308,11 +324,15 @@ const JobApplicationForm = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundImage: photoPreviewValidate3 ? 'none' : `url(${pose3Image})`,
+                      backgroundImage: photoPreviewValidate3
+                        ? 'none'
+                        : `url(${pose3Image})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
-                      backgroundColor: photoPreviewValidate3 ? 'transparent' : '#f5f5f5',
+                      backgroundColor: photoPreviewValidate3
+                        ? 'transparent'
+                        : '#f5f5f5',
                     }}
                   >
                     {photoPreviewValidate3 ? (
@@ -326,7 +346,16 @@ const JobApplicationForm = ({
                         }}
                       />
                     ) : (
-                      <Text type="secondary" style={{ fontSize: 12, textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 6px', borderRadius: 4 }}>
+                      <Text
+                        type="secondary"
+                        style={{
+                          fontSize: 12,
+                          textAlign: 'center',
+                          backgroundColor: 'rgba(255,255,255,0.7)',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
                         Foto 3
                       </Text>
                     )}
@@ -432,7 +461,6 @@ const JobApplicationForm = ({
               placeholder="Pilih tanggal lahir"
               format="DD/MM/YYYY"
               disabledDate={(current) => {
-                // Disable dates after today
                 return current && current > moment().endOf('day');
               }}
             />

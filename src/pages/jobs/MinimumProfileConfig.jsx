@@ -49,6 +49,7 @@ const MinimumProfileConfig = ({ value, onChange }) => {
     setFieldStates(newFieldStates);
 
     // Convert to expected format and call onChange
+    // Remove 'off' fields
     const fields = PROFILE_FIELDS.map((field) => {
       const state = newFieldStates[field.key] || 'mandatory';
       return {
@@ -58,7 +59,7 @@ const MinimumProfileConfig = ({ value, onChange }) => {
             state === 'mandatory' ? true : state === 'optional' ? false : null,
         },
       };
-    }).filter((field) => field.validation.required !== null); // Remove 'off' fields
+    }).filter((field) => field.validation.required !== null);
 
     const formattedValue = {
       sections: [

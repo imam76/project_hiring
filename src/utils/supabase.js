@@ -29,15 +29,6 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   },
 });
 
-/**
- * ===========================================
- * HELPER FUNCTIONS
- * ===========================================
- */
-
-/**
- * Get current session from storage
- */
 export const getCurrentSession = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -49,9 +40,6 @@ export const getCurrentSession = async () => {
   }
 };
 
-/**
- * Get current user
- */
 export const getCurrentUser = async () => {
   try {
     const { data, error } = await supabase.auth.getUser();
@@ -63,27 +51,16 @@ export const getCurrentUser = async () => {
   }
 };
 
-/**
- * Check if user is authenticated
- */
 export const isAuthenticated = async () => {
   const session = await getCurrentSession();
   return !!session;
 };
 
-/**
- * Get access token
- */
 export const getAccessToken = async () => {
   const session = await getCurrentSession();
   return session?.access_token || null;
 };
 
-/**
- * Subscribe to auth state changes
- * @param {Function} callback - Callback function yang dipanggil saat auth state berubah
- * @returns {Object} Subscription object dengan unsubscribe method
- */
 export const onAuthStateChange = (callback) => {
   const {
     data: { subscription },
@@ -97,9 +74,6 @@ export const onAuthStateChange = (callback) => {
   };
 };
 
-/**
- * Error handler helper untuk Supabase errors
- */
 export const handleSupabaseError = (error) => {
   if (!error) return null;
 
@@ -119,22 +93,9 @@ export const handleSupabaseError = (error) => {
   };
 };
 
-/**
- * ===========================================
- * REALTIME HELPERS
- * ===========================================
- */
-
-/**
- * Subscribe to table changes
- * @param {string} table - Table name
- * @param {Function} callback - Callback function
- * @param {Object} filter - Optional filter
- */
 export const subscribeToTable = (table, callback, filter = {}) => {
   let channel = supabase.channel(`${table}_changes`);
 
-  // Apply filters
   if (filter.event) {
     channel = channel.on(
       'postgres_changes',
@@ -165,9 +126,6 @@ export const subscribeToTable = (table, callback, filter = {}) => {
   };
 };
 
-/**
- * Subscribe to specific row changes
- */
 export const subscribeToRow = (table, id, callback) => {
   return subscribeToTable(table, callback, {
     filter: `id=eq.${id}`,
@@ -175,80 +133,3 @@ export const subscribeToRow = (table, id, callback) => {
 };
 
 export default supabase;
-
-/**
- * ===========================================
- * DOKUMENTASI PENGGUNAAN
- * ===========================================
- *
- * 1. IMPORT SUPABASE CLIENT
- * -------------------------
- * import supabase from '@/utils/supabase';
- *
- * 2. GET CURRENT SESSION
- * ----------------------
- * import { getCurrentSession } from '@/utils/supabase';
- *
- * const session = await getCurrentSession();
- * console.log('Access token:', session?.access_token);
- *
- * 3. GET CURRENT USER
- * -------------------
- * import { getCurrentUser } from '@/utils/supabase';
- *
- * const user = await getCurrentUser();
- * console.log('User:', user);
- *
- * 4. CHECK AUTHENTICATION
- * -----------------------
- * import { isAuthenticated } from '@/utils/supabase';
- *
- * if (await isAuthenticated()) {
- *   console.log('User is logged in');
- * }
- *
- * 5. AUTH STATE LISTENER
- * ----------------------
- * import { onAuthStateChange } from '@/utils/supabase';
- *
- * const subscription = onAuthStateChange((event, session) => {
- *   console.log('Auth event:', event);
- *   console.log('Session:', session);
- * });
- *
- * // Cleanup
- * subscription.unsubscribe();
- *
- * 6. ERROR HANDLING
- * -----------------
- * import { handleSupabaseError } from '@/utils/supabase';
- *
- * try {
- *   await supabase.auth.signIn({ email, password });
- * } catch (error) {
- *   const errorInfo = handleSupabaseError(error);
- *   console.error(errorInfo.message);
- * }
- *
- * 7. REALTIME SUBSCRIPTION
- * ------------------------
- * import { subscribeToTable } from '@/utils/supabase';
- *
- * const subscription = subscribeToTable('users', (payload) => {
- *   console.log('Change received:', payload);
- * }, { event: 'INSERT' });
- *
- * // Cleanup
- * subscription.unsubscribe();
- *
- * 8. ROW SUBSCRIPTION
- * -------------------
- * import { subscribeToRow } from '@/utils/supabase';
- *
- * const subscription = subscribeToRow('users', 'user-id', (payload) => {
- *   console.log('User updated:', payload);
- * });
- *
- * // Cleanup
- * subscription.unsubscribe();
- */

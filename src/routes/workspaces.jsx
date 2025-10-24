@@ -11,13 +11,13 @@ const routes = [
   {
     path: 'jobs',
     element: ReactLazyWithSuspense(
-      async () => await import('@/pages/workspaces/jobs/jobs'),
+      async () => await import('@/pages/jobs/jobs'),
     ),
   },
   {
     path: 'jobs/:jobId/applications',
     element: ReactLazyWithSuspense(
-      async () => await import('@/pages/workspaces/jobs/JobApplicationsManage'),
+      async () => await import('@/pages/jobs/JobApplicationsManage'),
     ),
   },
 ];
