@@ -28,7 +28,7 @@ export const LoginFormSchema = z.object({
 // Constants
 const DEFAULT_CREDENTIALS = {
   email: 'test@mailinator.com',
-  password: '123123',
+  password: '123123123',
 };
 
 export default function LoginFormComponent({ onSubmit, isLoading }) {
