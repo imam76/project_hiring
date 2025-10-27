@@ -7,7 +7,6 @@ export async function devLocalLogin(email, password) {
 
   try {
     const user = await userApi.fetchUserByEmail(email);
-    console.log('useraaaaaaaaaaaaaaaaaaaa =>', user);
     if (!user?.password_hash) {
       return {
         success: false,
