@@ -9,6 +9,6 @@
     {
       "source": "/api/v1/:path*",
       "destination": "https://myapp-api-rust.fly.dev/api/v1/:path*"
-    },
+    }
   ]
 }
