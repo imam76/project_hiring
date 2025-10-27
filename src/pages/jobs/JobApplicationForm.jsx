@@ -141,48 +141,53 @@ const JobApplicationForm = ({
 
       case 'photo_profile':
         return (
-          <Form.Item
-            key={fieldKey}
-            name={fieldKey}
-            label="Foto Profil"
-            rules={[
-              { required: isRequired, message: 'Foto profil wajib diunggah!' },
-            ]}
-          >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              {photoPreview && (
-                <div
-                  style={{
-                    width: 120,
-                    height: 120,
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '2px solid #d9d9d9',
-                    marginBottom: 8,
-                  }}
-                >
-                  <img
-                    src={photoPreview}
-                    alt="Preview"
+          <>
+            <Form.Item
+              key={fieldKey}
+              name={fieldKey}
+              label="Foto Profil"
+              rules={[
+                { required: isRequired, message: 'Foto profil wajib diunggah!' },
+              ]}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {photoPreview && (
+                  <div
                     style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
+                      width: 120,
+                      height: 120,
+                      borderRadius: '50%',
+                      overflow: 'hidden',
+                      border: '2px solid #d9d9d9',
+                      marginBottom: 8,
                     }}
-                  />
-                </div>
-              )}
-              <Upload
-                accept="image/*"
-                beforeUpload={() => false}
-                onChange={handlePhotoChange}
-                showUploadList={false}
-                maxCount={1}
-              >
-                <Button icon={<UploadOutlined />}>
-                  {photoPreview ? 'Ganti Foto' : 'Upload Foto'}
-                </Button>
-              </Upload>
+                  >
+                    <img
+                      src={photoPreview}
+                      alt="Preview"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                )}
+                <Upload
+                  accept="image/*"
+                  beforeUpload={() => false}
+                  onChange={handlePhotoChange}
+                  showUploadList={false}
+                  maxCount={1}
+                >
+                  <Button icon={<UploadOutlined />}>
+                    {photoPreview ? 'Ganti Foto' : 'Upload Foto'}
+                  </Button>
+                </Upload>
+
+              </Space>
+            </Form.Item>
+            <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 Format: JPG/PNG, Maksimal 2MB
               </Text>
@@ -362,8 +367,8 @@ const JobApplicationForm = ({
                   </div>
                 </div>
               </div>
-            </Space>
-          </Form.Item>
+            </div>
+          </>
         );
 
       case 'gender':
