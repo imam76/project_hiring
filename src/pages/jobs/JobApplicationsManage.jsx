@@ -256,7 +256,7 @@ const JobApplicationsManage = () => {
       <div style={{ marginBottom: '24px' }}>
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/workspaces/jobs')}
+          onClick={() => navigate('/jobs')}
           style={{ marginBottom: '16px' }}
         >
           Back to Jobs
